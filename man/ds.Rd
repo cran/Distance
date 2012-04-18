@@ -4,10 +4,10 @@
 \usage{
   ds(data, truncation = NULL, transect = "line",
     formula = ~1, key = "hn", adjustment = "cos",
-    order = NULL, scale = "scale", cutpoints = NULL,
+    order = NULL, scale = "width", cutpoints = NULL,
     monotonicity = FALSE, region.table = NULL,
     sample.table = NULL, obs.table = NULL,
-    convert.units = 1)
+    convert.units = 1, quiet = FALSE)
 }
 \arguments{
   \item{data}{a \code{data.frame} containing at least a
@@ -37,7 +37,9 @@
 
   \item{adjustment}{adjustment terms to use; "cos" gives
   cosine (default), "herm" gives Hermite polynomial and
-  "poly" gives simple polynomial.  "cos" is recommended.}
+  "poly" gives simple polynomial.  "cos" is recommended. A
+  value of \code{NULL} indicates that no adjustments are to
+  be fitted.}
 
   \item{order}{orders of the adjustment terms to fit (as a
   vector/scalar), the default value (\code{NULL}) will
@@ -48,10 +50,10 @@
   allowed.}
 
   \item{scale}{the scale by which the distances in the
-  adjustment terms are divided. Defaults to "scale", the
-  scale parameter of the detection function. Other option
-  is "width" which scales by the truncation distance. If
-  the key is uniform only "width" will be used.}
+  adjustment terms are divided. Defaults to "width",
+  scaling by the truncation distance. If the key is uniform
+  only "width" will be used. The other option is "scale":
+  the scale parameter of the detection}
 
   \item{cutpoints}{if the data are binned, this vector
   gives the cutpoints of the bins. Ensure that the first
@@ -94,6 +96,9 @@
   \item{convert.units}{conversion between units for
   abundance estimation, see "Units", below. (Defaults to 1,
   implying all of the units are "correct" already.)}
+
+  \item{quiet}{surpress non-warning messages (useful for
+  bootstraps etc).  Default value FALSE.}
 }
 \value{
   a list with elements: \tabular{ll}{\code{ddf} \tab a

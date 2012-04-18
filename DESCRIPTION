@@ -12,13 +12,13 @@ Description: A library that provides a simple way of fitting detection
         truncation as well as monotonicity constraints and binning are
         supported. Abundance and density estimates can also be
         calculated if survey area information is provided.
-Version: 0.6
+Version: 0.6.1
 URL: http://github.com/dill/Distance/wiki
 Date: 2012-04-18
 Depends: R (>= 2.10.0), mrds, optimx, Rsolnp
 Suggests: testthat
 Collate: 'ds.R' 'create.bins.R' 'model.description.R' 'plot.dsmodel.R'
         'print.dsmodel.R' 'print.summary.dsmodel.R' 'summary.dsmodel.R'
-Packaged: 2012-04-02 14:25:01 UTC; dave
+Packaged: 2012-08-01 18:11:13 UTC; dill
 Repository: CRAN
-Date/Publication: 2012-04-02 17:47:05
+Date/Publication: 2012-08-01 20:11:54

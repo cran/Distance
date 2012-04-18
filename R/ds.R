@@ -24,16 +24,17 @@
 #'        gives hazard-rate and "unif" gives uniform.
 #' @param adjustment adjustment terms to use; "cos" gives cosine (default),
 #'        "herm" gives Hermite polynomial and "poly" gives simple polynomial.
-#'        "cos" is recommended.
+#'        "cos" is recommended. A value of \code{NULL} indicates that no 
+#'        adjustments are to be fitted.
 #' @param order orders of the adjustment terms to fit (as a vector/scalar), the
 #'        default value (\code{NULL}) will select via AIC. For cosine 
 #'        adjustments, valid orders are integers greater than 2. For Hermite 
 #'        polynomials, even integers equal or greater than 4 are allowed. For 
 #'        simple polynomials even integers equal or greater than 2 are allowed.
 #' @param scale the scale by which the distances in the adjustment terms are
-#'        divided. Defaults to "scale", the scale parameter of the detection
-#'        function. Other option is "width" which scales by the truncation
-#'        distance. If the key is uniform only "width" will be used.
+#'        divided. Defaults to "width", scaling by the truncation
+#'        distance. If the key is uniform only "width" will be used. The other
+#'        option is "scale": the scale parameter of the detection
 #' @param cutpoints if the data are binned, this vector gives the cutpoints of 
 #'        the bins. Ensure that the first element is 0 (or the left truncation
 #'        distance) and the last is the distance to the end of the furthest bin.
@@ -68,6 +69,9 @@
 #' @param convert.units conversion between units for abundance estimation, 
 #'        see "Units", below. (Defaults to 1, implying all of the units are 
 #'        "correct" already.)
+#'
+#' @param quiet surpress non-warning messages (useful for bootstraps etc).
+#'              Default value FALSE.
 #'        
 #'
 #' @return a list with elements:
@@ -169,10 +173,10 @@
 #'  summary(ds.model.hr.trunc)
 #'
 ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
-             adjustment="cos", order=NULL, scale="scale", cutpoints=NULL,
+             adjustment="cos", order=NULL, scale="width", cutpoints=NULL,
              monotonicity=FALSE,
              region.table=NULL,sample.table=NULL,obs.table=NULL,
-             convert.units=1){
+             convert.units=1,quiet=FALSE){
   
   # this routine just creates a call to mrds, it's not very exciting
   # or fancy, it does do a lot of error checking though
@@ -245,6 +249,11 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
   }
 
   # transect type 
+  #point<-switch(transect,
+  #              "line"=FALSE,
+  #              "point"=TRUE,
+  #              stop("Only \"point\" or \"line\" transects may be supplied.")
+  #             )
   if(transect=="line"){
     point <- FALSE
   }else if(transect=="point"){
@@ -256,7 +265,15 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
   # key and adjustments
   if(!(key %in% c("hn","hr","unif"))){
     stop("key function must be \"hn\", \"hr\" or \"unif\".")
+  }else{
+    # keep the name for the key function
+    key.name <- switch(key,
+                       hn="half-normal",
+                       hr="hazard-rate",
+                       unif="uniform"
+                      )
   }
+
   # no uniform key with no adjustments
   if(is.null(adjustment) & key=="unif"){
     stop("Can't use uniform key with no adjustments.")
@@ -271,6 +288,7 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
     }
   }
   if(!is.null(adjustment)){
+
     if(!is.null(order)){
       aic.search <- FALSE
       if(any(order != ceiling(order))){
@@ -304,17 +322,27 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
         order <- order[order<=max.order]
       }
     }
+  
+    # keep the name for the adjustments
+    adj.name <- switch(adjustment,
+                       cos="cosine",
+                       herm="Hermite",
+                       poly="simple polynomial"
+                      )
+
   }else{
     aic.search<-FALSE
   }
 
-  # binning
+  ### binning
   if(is.null(cutpoints)){
     if(any(names(data)=="distend") & any(names(data)=="distbegin")){
-      warning("No cutpoints specified but distbegin and distend are columns in data. Doing a binned analysis...")
+      warning("No cutpoints specified but distbegin and distend are columns in data. Guessing bins and performing a binned analysis...")
       binned <- TRUE
+      breaks <- sort(unique(c(data$distend,data$distbegin)))
     }else{
       binned <- FALSE
+      breaks <- NULL
     }
   }else{
     # make sure that the first bin starts 0 or left
@@ -335,6 +363,7 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
     # send off to create.bins to make the correct columns in data
     data <- create.bins(data,cutpoints)
     binned <- TRUE
+    breaks <- cutpoints
   }
 
   # monotonicity
@@ -355,6 +384,12 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
   }else{
     stop("monotonicity must be one of \"none\", FALSE, \"weak\" or \"strict\".")
   } 
+
+  # can't do monotonicity and covariates, turn that off!
+  if(mono & formula!=as.formula("~1")){
+    warning("Monotonicity cannot be enforced with covariates.")
+    mono <- mono.strict <- FALSE
+  }
     
   ### Actually fit some models here
   
@@ -363,6 +398,9 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
                     mono=mono, mono.strict=mono.strict)
   if(!is.null(left)){
     meta.data$left<-left
+  }
+  if(binned){
+    meta.data$breaks <- breaks
   }
 
   # if we are doing an AIC-based search then, create the indices for the
@@ -373,6 +411,7 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
     }else{
       for.ind <- seq(along=order)
     }
+    message("Starting AIC adjustment term selection.")
   }else if(!is.null(adjustment)){
     for.ind <- length(order)
   }else{
@@ -386,7 +425,7 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
   for(i in for.ind){ 
     # construct model formulae
     # CDS model
-    if(as.character(formula)[2]=="1"){
+    if(formula==as.formula("~1")){
       model.formula <- paste("~cds(key =\"", key,"\", formula = ~1",sep="")
     # MCDS model
     }else{
@@ -412,14 +451,26 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
 
     model.formula<-paste(model.formula,")",sep="")
 
+    this.message <- paste("Fitting ",key.name," key function",sep="")
+    if(!is.null(adjustment)){
+      this.message <- paste(this.message, 
+                            " with ", adj.name,"(",
+                            paste(order[1:i],collapse=","),
+                            ") adjustments", sep="")
+    }
+
+    message(this.message)
 
     # actually fit a model
-    model<-try(ddf(dsmodel = as.formula(model.formula),data = data, 
-                method = "ds", meta.data = meta.data),silent=TRUE)
+    model<-suppressWarnings(try(ddf(dsmodel = as.formula(model.formula),
+                                    data = data, method = "ds", 
+                                    meta.data = meta.data),silent=TRUE))
 
     # if that worked
-    if(any(class(model)!="try-error")){
+    if(any(class(model)!="try-error") & model$ds$converge==0){
       model$call$dsmodel<-as.formula(model.formula)
+
+      message(paste("AIC=",round(model$criterion,3)))
       
       if(aic.search){
         # if this models AIC is worse (bigger) than the last return the last and
@@ -456,7 +507,9 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
     # the detection function stuff
     dht.res<-NULL
 
-    cat("No survey area information supplied, only estimating detection function.\n")
+    if(!quiet){
+      message("No survey area information supplied, only estimating detection function.\n")
+    }
   }
 
   # construct return object
