@@ -28,7 +28,8 @@
 #'        adjustments are to be fitted.
 #' @param order orders of the adjustment terms to fit (as a vector/scalar), the
 #'        default value (\code{NULL}) will select via AIC. For cosine 
-#'        adjustments, valid orders are integers greater than 2. For Hermite 
+#'        adjustments, valid orders are integers greater than 2 (except when a 
+#'        uniform key is used, when the minimum order is 1). For Hermite 
 #'        polynomials, even integers equal or greater than 4 are allowed. For 
 #'        simple polynomials even integers equal or greater than 2 are allowed.
 #' @param scale the scale by which the distances in the adjustment terms are
@@ -199,6 +200,19 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
   if(!any(names(data)=="object")){
     data<-cbind(data,object=1:nrow(data))
   }
+
+  # check that dht info has the right column titles
+  if(!is.null(region.table) & !is.null(sample.table) & !is.null(obs.table)){
+    if(!all(c("Region.Label","Area") %in% names(region.table))){
+      stop("region.table must have columns named 'Region.Label' and 'Area'")
+    }
+    if(!all(c("Region.Label","Sample.Label","Effort") %in% names(sample.table))){
+      stop("sample.table must have columns named 'Region.Label', 'Sample.Label' and 'Effort'")
+    }
+    if(!all(c("Region.Label","Sample.Label","object") %in% names(obs.table))){
+      stop("obs.table must have columns names 'Region.Label', 'Sample.Label' and 'object'")
+    }
+  }
   
   # truncation
   if(is.null(truncation)){
@@ -302,7 +316,7 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
           stop("Adjustment orders must be even for Hermite and simple polynomials.")
         }
       }
-      if(adjustment=="herm" | adjustment=="cos"){
+      if((adjustment=="herm" | adjustment=="cos") & key!="unif"){
         if(any(order==1)){
           stop("Adjustment orders for Hermite polynomials and cosines must start at 2.")
         }
@@ -317,6 +331,12 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
       }else{
         order <- seq(2,max.order)
       }
+
+      # for Fourier...
+      if(key=="unif" & adjustment=="cos"){
+        order <- c(1,order)
+      }
+
       if(adjustment=="herm" | adjustment=="poly"){
         order <- 2*order
         order <- order[order<=max.order]
@@ -433,6 +453,9 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
                                   "formula =~",as.character(formula)[2],sep="") 
     }
 
+    # build a message to let the user know what is being fitted
+    this.message <- paste("Fitting ",key.name," key function",sep="")
+
     # adjustments?
     # this handles the case when we have adjustments but are doing AIC search
     # so want to fit a key function alone to begin with.
@@ -447,39 +470,44 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
                            "adj.series=\"",adjustment,
                            "\",adj.order=",order.str,",",
                            "adj.scale=\"",scale,"\"",sep="")
-    }
 
-    model.formula<-paste(model.formula,")",sep="")
-
-    this.message <- paste("Fitting ",key.name," key function",sep="")
-    if(!is.null(adjustment)){
       this.message <- paste(this.message, 
                             " with ", adj.name,"(",
                             paste(order[1:i],collapse=","),
                             ") adjustments", sep="")
     }
 
+    model.formula<-paste(model.formula,")",sep="")
+
+    # tell the user what is being fitted
     message(this.message)
 
     # actually fit a model
-    model<-suppressWarnings(try(ddf(dsmodel = as.formula(model.formula),
+    # wrap everything around this so we don't print out a lot of useless
+    # stuff...
+    model<-suppressPackageStartupMessages(suppressWarnings(try(
+                                ddf(dsmodel = as.formula(model.formula),
                                     data = data, method = "ds", 
-                                    meta.data = meta.data),silent=TRUE))
+                                    meta.data = meta.data),silent=TRUE)))
 
     # if that worked
-    if(any(class(model)!="try-error") & model$ds$converge==0){
-      model$call$dsmodel<-as.formula(model.formula)
+    if(any(class(model)!="try-error")){
+      if(model$ds$converge==0){
 
-      message(paste("AIC=",round(model$criterion,3)))
-      
-      if(aic.search){
-        # if this models AIC is worse (bigger) than the last return the last and
-        # stop looking.
-        if(model$criterion>last.model$criterion){
-          model<-last.model
-          break
-        }else{
-          last.model<-model
+        # need this to get plotting to work!
+        model$call$dsmodel<-as.formula(model.formula)
+
+        message(paste("AIC=",round(model$criterion,3)))
+        
+        if(aic.search){
+          # if this models AIC is worse (bigger) than the last 
+          # return the last and stop looking.
+          if(model$criterion>last.model$criterion){
+            model<-last.model
+            break
+          }else{
+            last.model<-model
+          }
         }
       }
     }
@@ -500,7 +528,7 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
     # observation(‘group=FALSE’ in ‘options’).
 
     dht.res<-dht(model,region.table,sample.table,obs.table,
-                 options=list(varflag=0,group=TRUE,
+                 options=list(#varflag=0,group=TRUE,
                               convert.units=convert.units),se=TRUE)
   }else{
     # if no information on the survey area was supplied just return 
@@ -513,7 +541,8 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
   }
 
   # construct return object
-  ret.obj<-list(ddf=model,dht=dht.res)
+  ret.obj<-list(ddf = model,
+                dht = dht.res)
 
   # give it some class
   class(ret.obj)<-"dsmodel"
