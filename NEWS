@@ -1,4 +1,9 @@
 Distance version 0.7
+ * debugging options
+ * bug fixes (see github for further details)
+   - automatic generation of adjustments did not generate any for poly/herm.
 
+
+Distance version 0.7
  * "width" is now default for scaling
 

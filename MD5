@@ -1,8 +1,8 @@
-ba0cdd28a047b7638827137fa69d9bbc *DESCRIPTION
+88ac94e75b5ade3847e6f9e3840e314c *DESCRIPTION
 2dfa1e5b278f4901a2de503151d79eba *NAMESPACE
-b790776071f836625c2745b1525d46cd *NEWS
+2c20fae1d387da6dd31fbf4d7bb315a0 *NEWS
 66340a3dbece7fa113182e3a20b10022 *R/create.bins.R
-fb2123036c331b46e7d452c849263f8f *R/ds.R
+eb8667d8e78130d63113f5427bbd6029 *R/ds.R
 428a83b1b4281037c7a658dab451c978 *R/model.description.R
 fbe95b4223677c763cda52818e850c48 *R/plot.dsmodel.R
 e5fff068edcea64af11a2b53d5d86e8a *R/print.dsmodel.R
@@ -11,7 +11,7 @@ edb1f122df01ed2cc838fa526a2a0f94 *R/summary.dsmodel.R
 3432ccf48760c39cad2fa964a7a8be92 *README
 733c6d8b86fae4ae46f92fb9fae80176 *inst/tests/test_ds.R
 34a2edf0897c3de851e05b2b67039a01 *man/create.bins.Rd
-addd6517a6bbf2cac2e5f19c40bffb87 *man/ds.Rd
+2697c9d73983cbe4b7abefa9c2994248 *man/ds.Rd
 36ec23e5607e03b3ef27034643bbe701 *man/plot.dsmodel.Rd
 c78921f3142ba8d487ad2f943e3056cb *man/print.dsmodel.Rd
 dcbf212a22c157c84549fc8aa5894e5b *man/print.summary.dsmodel.Rd
