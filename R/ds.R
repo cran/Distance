@@ -93,10 +93,12 @@
 #'  \code{sample.table} and \code{obs.table} must be supplied.
 #'
 #' @section Clusters/groups:
-#'  Note that if the data contains a column named \code{size}, cluster size will
-#'  be estimated and density/abundance will be based on a clustered analsis of
-#'  the data. Setting this column to be \code{NULL} will perform a non-clustred
-#'  analysis (for example if "size" means something else if your dataset).
+#'  Note that if the data contains a column named \code{size} and 
+#'  \code{region.table}, \code{sample.table} and \code{obs.table} are supplied, 
+#'   cluster size will be estimated and density/abundance will be based on a 
+#'  clustered analsis of the data. Setting this column to be \code{NULL} will 
+#'  perform a non-clustred analysis (for example if "size" means something else 
+#'  if your dataset).
 #'
 # THIS IS STOLEN FROM mrds, sorry Jeff!
 #' @section Units:
@@ -376,7 +378,7 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
   ### binning
   if(is.null(cutpoints)){
     if(any(names(data)=="distend") & any(names(data)=="distbegin")){
-      warning("No cutpoints specified but distbegin and distend are columns in data. Guessing bins and performing a binned analysis...")
+      warning("No cutpoints specified but distbegin and distend are columns in data. Performing a binned analysis...")
       binned <- TRUE
       breaks <- sort(unique(c(data$distend,data$distbegin)))
     }else{
@@ -507,11 +509,14 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
     # actually fit a model
     # wrap everything around this so we don't print out a lot of useless
     # stuff...
-    model<-suppressPackageStartupMessages(suppressWarnings(try(
-                                ddf(dsmodel = as.formula(model.formula),
-                                    data = data, method = "ds",
-                                    control=control,
-                                    meta.data = meta.data),silent=TRUE)))
+    model <- suppressPackageStartupMessages(
+               suppressWarnings(try(
+                                  ddf(dsmodel = as.formula(model.formula),
+                                      data = data, method = "ds",
+                                      control=control,
+                                      meta.data = meta.data),silent=TRUE)))
+
+    model$name.message <- sub("^Fitting ","",this.message)
 
     # if that worked
     if(any(class(model)!="try-error")){
@@ -524,17 +529,23 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
 
         if(aic.search){
           # if this models AIC is worse (bigger) than the last
-          # return the last and stop looking.
+          # return the last model and stop looking.
           if(model$criterion>last.model$criterion){
             model<-last.model
+            message(paste0("\n\n",model$name.message," selected!"))
             break
           }else{
+            # otherwise keep this, best model
             last.model<-model
           }
         }
+      }else{
+        message("  Model failed to converge.")
       }
     }else{
-      model<-NULL
+      message(paste0("\n\nError in model fitting, returning: ",model$name.message))
+      model <- last.model
+      break
     }
   }
 
