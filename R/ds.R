@@ -1,29 +1,18 @@
 #' Fit detection functions and calculate abundance from line or point transect data
 #'
-#' This function fits detection functions to line or point transect data and 
-#' then (provided that survey information is supplied) calculates abundance
-#' and density estimates. The examples below illustrate some basic types of
-#' analysis using \code{ds()}.
+#' This function fits detection functions to line or point transect data and then (provided that survey information is supplied) calculates abundance and density estimates. The examples below illustrate some basic types of analysis using \code{ds()}.
 #'
 #' @param data a \code{data.frame} containing at least a column called
 #'        \code{distance}. NOTE! If there is a column called \code{size} in
 #'        the data then it will be interpreted as group/cluster size, see the
 #'        section "Clusters/groups", below. One can supply data as a "flat file"
 #'        and not supply \code{region.table}, \code{sample.table} and
-#'        \code{obs.table}, see "Data format", below.
-#' @param truncation either truncation distance (numeric, e.g. 5) or percentage
-#'        (as a string, e.g. "15\%"). Can be supplied as a \code{list}
-#'        with elements \code{left} and \code{right} if left truncation is
-#'        required (e.g. \code{list(left=1,right=20)} or
-#'        \code{list(left="1\%",right="15\%")} or even
-#         \code{list(left="1",right="15\%")}).
-#'        When specified as a percentage, the largest \code{right} and
-#'        smallest \code{left} percent distances are discarded.
+#'        \code{obs.table}, see "Data format", below and \code{\link{flatfile}}.
+#' @param truncation either truncation distance (numeric, e.g. 5) or percentage (as a string, e.g. "15\%"). Can be supplied as a \code{list} with elements \code{left} and \code{right} if left truncation is required (e.g. \code{list(left=1,right=20)} or \code{list(left="1\%",right="15\%")} or even \code{list(left="1",right="15\%")}).
+#' By default for exact distances the maximum observed distance is used as the right truncation. When the data is binned, the right truncation is the largest bin end point. Default left truncation is set to zero.
 #' @param transect indicates transect type "line" (default) or "point".
-#' @param formula formula for the scale parameter. For a CDS analysis leave
-#'        this as its default \code{~1}.
-#' @param key key function to use; "hn" gives half-normal (default), "hr"
-#'        gives hazard-rate and "unif" gives uniform.
+#' @param formula formula for the scale parameter. For a CDS analysis leave this as its default \code{~1}.
+#' @param key key function to use; "hn" gives half-normal (default), "hr" gives hazard-rate and "unif" gives uniform.
 #' @param adjustment adjustment terms to use; "cos" gives cosine (default),
 #'        "herm" gives Hermite polynomial and "poly" gives simple polynomial.
 #'        "cos" is recommended. A value of \code{NULL} indicates that no
@@ -46,10 +35,12 @@
 #'        \code{distend} then these will be used as bins if \code{cutpoints}
 #'        is not specified. If both are specified, \code{cutpoints} has
 #'        precedence.
-#' @param monotonicity should the detection function be constrained for
-#'        monotonicity weakly ("weak"), strictly ("strict") or not at all
-#'        ("none" or \code{FALSE}). See Montonicity, below. (Default
-#'        \code{FALSE}).
+#' @param monotonicity should the detection function be constrained for monotonicity weakly (\code{"weak"}), strictly (\code{"strict"}) or not at all (\code{"none"} or \code{FALSE}). See Montonicity, below. (Default \code{"strict"}).
+#' @param dht.group should density abundance estimates consider all groups to be
+#'        size 1 (abundance of groups) \code{dht.group=TRUE} or should the
+#'        abundance of individuals (group size is taken into account),
+#'        \code{dht.group=FALSE}. Default is \code{FALSE} (abundance of
+#'        individuals is calculated).
 #' @param region.table \code{data.frame} with two columns:
 #'        \tabular{ll}{ \code{Region.Label} \tab label for the region\cr
 #'                     \code{Area} \tab area of the region\cr}
@@ -74,7 +65,7 @@
 #'        "correct" already.)
 #'
 #' @param method optimization method to use (any method usable by
-#'        \code{\link{optim}} or \code{\link{optimx}}). Defaults to
+#'        \code{\link{optim}} or \pkg{optimx}). Defaults to
 #'        "nlminb".
 #'
 #' @param debug.level print debugging output. 0=none, 1-3 increasing level of
@@ -93,16 +84,21 @@
 #'
 #' @section Details:
 #'
-#'  If abundance estimates are required the \code{data.frame}s \code{region.table},
-#'  \code{sample.table} and \code{obs.table} must be supplied.
+#' If abundance estimates are required then the \code{data.frame}s \code{region.table} and \code{sample.table} must be supplied. If \code{data} does not contain the columns \code{Region.Label} and \code{Sample.Label} thenthe \code{data.frame} \code{obs.table} must also be supplied. Note that stratification only applies to abundance estimates and not at the detection function level.
 #'
 #' @section Clusters/groups:
-#'  Note that if the data contains a column named \code{size} and
-#'  \code{region.table}, \code{sample.table} and \code{obs.table} are supplied,
-#'   cluster size will be estimated and density/abundance will be based on a
-#'  clustered analsis of the data. Setting this column to be \code{NULL} will
-#'  perform a non-clustred analysis (for example if "size" means something else
-#'  if your dataset).
+#'  Note that if the data contains a column named \code{size} and \code{region.table}, \code{sample.table} and \code{obs.table} are supplied, cluster size will be estimated and density/abundance will be based on a clustered analsis of the data. Setting this column to be \code{NULL} will perform a non-clustred analysis (for example if "\code{size}" means something else in your dataset).
+#'
+#' @section Truncation:
+#' The right truncation point is by default set to be largest observed distance or bin end point. This is a default will not be appropriate for all data and can often be the cause of model convergence failures. It is recommended that one plots a histogram of the observed distances prior to model fitting so as to get a feel for an appropriate truncation distance. (Similar arguments go for left truncation, if appropriate). Buckland et al (2001) provide guidelines on truncation.
+#'
+#' When specified as a percentage, the largest \code{right} and smallest \code{left} percent distances are discarded. Percentages cannot be supplied when using binned data.
+#'
+#'  @section Binning: Note that binning is performed such that bin 1 is all distances greater or equal to cutpoint 1 (>=0 or left truncation distance) and less than cutpoint 2. Bin 2 is then distances greater or equal to cutpoint 2 and less than cutpoint 3 and so on.
+#'
+#' @section Monotonicity: When adjustment terms are used, it is possible for the detection function to not always decrease with increasing distance. This is unrealistic and can lead to bias. To avoid this, the detection function can be constrained for monotonicity.
+#'
+#'  Monotonicity constraints are supported in a similar way to that described in Buckland et al (2001). 20 equally spaced points over the range of the detection function (left to right truncation) are evaluated at each round of the optimisation and the function is constrained to be either always less than it's value at zero (\code{"weak"}) or such that each value is less than or equal to the previous point (monotonically decreasing; \code{"strict"}). See also \code{\link{check.mono}} in \code{mrds}.
 #'
 # THIS IS STOLEN FROM mrds, sorry Jeff!
 #' @section Units:
@@ -132,33 +128,7 @@
 #'  units of hectares (100 to convert meters to 100 meters for distance and
 #'  .1 to convert km to 100m units).
 #'
-#'  @section Monotonicity: When adjustment terms are used, it is possible for
-#'  the detection function to not always decrease with increasing distance.
-#'  This is unrealistic and can lead to bias. To avoid this, the detection
-#'  function can be constrained for monotonicity.
-#'
-#'  Monotonicity constraints are supported in a similar way to that described
-#'  in Buckland et al (2001). 20 equally spaced points over the range of the
-#'  detection function (left to right truncation) are evaluated at each round
-#'  of the optimisation and the function is constrained to be either always
-#'  less than it's value at zero (\code{"weak"}) or such that each value is
-#'  less than or equal to the previous point (monotonically decreasing;
-#'  \code{"strict"}).
-#'
-#'  @section Binning: Note that binning is performed such that bin 1 is all
-#'  distances greater or equal to cutpoint 1 (>=0 or left truncation distance)
-#'  and less than cutpoint 2. Bin 2 is then distances greater or equal to
-#'  cutpoint 2 and less than cutpoint 3 and so on.
-#'
-#'  @section Data format: One can supply \code{data} only to simply fit a
-#'  detection function. However, if abundance/density estimates are necessary
-#'  further information is required. Either the \code{region.table},
-#'  \code{sample.table} and \code{obs.table} \code{data.frame}s can be supplied
-#'  or all data can be supplied as a "flat file" in the \code{data} argument. In
-#'  this format each row in data has additional information that would
-#'  ordinarily be in the other tables. This usually means that there are
-#'  additional columns named: \code{Sample.Label}, \code{Region.Label},
-#'  \code{Effort} and \code{Area} for each observation.
+#'  @section Data format: One can supply \code{data} only to simply fit a detection function. However, if abundance/density estimates are necessary further information is required. Either the \code{region.table}, \code{sample.table} and \code{obs.table} \code{data.frame}s can be supplied or all data can be supplied as a "flat file" in the \code{data} argument. In this format each row in data has additional information that would ordinarily be in the other tables. This usually means that there are additional columns named: \code{Sample.Label}, \code{Region.Label}, \code{Effort} and \code{Area} for each observation. See \code{\link{flatfile}} for an example.
 #'
 #' @author David L. Miller
 #' @export
@@ -174,7 +144,7 @@
 #' library(Distance)
 #' data(book.tee.data)
 #' tee.data<-book.tee.data$book.tee.dataframe[book.tee.data$book.tee.dataframe$observer==1,]
-#' ds.model<-ds(tee.data,4,monotonicity="strict")
+#' ds.model<-ds(tee.data,4)
 #' summary(ds.model)
 #' plot(ds.model)
 #'
@@ -185,7 +155,7 @@
 #' samples<-book.tee.data$book.tee.samples
 #' obs<-book.tee.data$book.tee.obs
 #'
-#' ds.dht.model<-ds(tee.data,4,region.table=region,monotonicity="strict",
+#' ds.dht.model<-ds(tee.data,4,region.table=region,
 #'              sample.table=samples,obs.table=obs)
 #' summary(ds.dht.model)
 #'
@@ -193,9 +163,12 @@
 #' ds.model.cos2<-ds(tee.data,4,adjustment="cos",order=2)
 #' summary(ds.model.cos2)
 #'
-#' # specify order 2 and 3 cosine adjustments - LOTS of non-monotonicity!
-#' ds.model.cos24<-ds(tee.data,4,adjustment="cos",order=c(2,3))
-#' summary(ds.model.cos24)
+#' # specify order 2 and 3 cosine adjustments, turning monotonicity
+#' # constraints off
+#' ds.model.cos24<-ds(tee.data,4,adjustment="cos",order=c(2,3),
+#'                    monotonicity=FALSE)
+#' # check for non-monotonicity -- actually no problems
+#' check.mono(ds.model.cos24$ddf,plot=TRUE,n.pts=100)
 #'
 #' # truncate the largest 10% of the data and fit only a hazard-rate
 #' # detection function
@@ -203,22 +176,23 @@
 #' summary(ds.model.hr.trunc)
 #'}
 #'
-ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
-             adjustment="cos", order=NULL, scale="width", cutpoints=NULL,
-             monotonicity=FALSE,
-             region.table=NULL,sample.table=NULL,obs.table=NULL,
-             convert.units=1,method="nlminb",quiet=FALSE,debug.level=0,
+ds<-function(data, truncation=ifelse(is.null(cutpoints),
+                                     ifelse(is.null(data$distend),
+                                            max(data$distance),
+                                            max(data$distend)),
+                                     max(cutpoints)),
+             transect=c("line","point"),
+             formula=~1, key=c("hn","hr","unif"),
+             adjustment=c("cos","herm","poly"),
+             order=NULL, scale=c("width","scale"),
+             cutpoints=NULL, monotonicity="strict", dht.group=FALSE,
+             region.table=NULL, sample.table=NULL, obs.table=NULL,
+             convert.units=1, method="nlminb", quiet=FALSE, debug.level=0,
              initial.values=NULL){
 
   # this routine just creates a call to mrds, it's not very exciting
   # or fancy, it does do a lot of error checking though
 
-  # check that the data is okay
-  data <- checkdata(data,region.table,sample.table,obs.table)
-  region.table <- data$region.table
-  sample.table <- data$sample.table
-  obs.table    <- data$obs.table
-  data         <- data$data
 
   # truncation
   if(is.null(truncation)){
@@ -274,45 +248,81 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
     }
   }
 
-  # transect type 
-  #point<-switch(transect,
-  #              "line"=FALSE,
-  #              "point"=TRUE,
-  #              stop("Only \"point\" or \"line\" transects may be supplied.")
-  #             )
-  if(transect=="line"){
-    point <- FALSE
-  }else if(transect=="point"){
-    point <- TRUE
+  # check the data, format into the correct tables if we have a flat file
+  data <- checkdata(data,region.table,sample.table,obs.table)
+  region.table <- data$region.table
+  sample.table <- data$sample.table
+  obs.table    <- data$obs.table
+  data         <- data$data
+
+  ### binning
+  if(is.null(cutpoints)){
+    if(any(names(data)=="distend") & any(names(data)=="distbegin")){
+      message("Columns \"distbegin\" and \"distend\" in data: performing a binned analysis...")
+      binned <- TRUE
+      breaks <- sort(unique(c(data$distend,data$distbegin)))
+    }else{
+      binned <- FALSE
+      breaks <- NULL
+    }
   }else{
-    stop("Only \"point\" or \"line\" transects may be supplied.")
+    # make sure that the first bin starts 0 or left
+    if(!is.null(left)){
+      if(cutpoints[1]!=left){
+        stop("The first cutpoint must be 0 or the left truncation distance!")
+      }
+    }else if(cutpoints[1]!=0){
+      stop("The first cutpoint must be 0 or the left truncation distance!")
+    }
+
+    # remove distbegin and distend if they already exist
+    if(any(names(data)=="distend") & any(names(data)=="distbegin")){
+      message("data already has distend and distbegin columns, removing them and appling binning as specified by cutpoints.")
+      data$distend<-NULL
+      data$distbegin<-NULL
+    }
+    # send off to create.bins to make the correct columns in data
+    data <- create.bins(data,cutpoints)
+    binned <- TRUE
+    breaks <- cutpoints
   }
 
+  # transect type
+  point <- switch(match.arg(transect),
+                  "line"=FALSE,
+                  "point"=TRUE,
+                  stop("Only \"point\" or \"line\" transects may be supplied.")
+                 )
+
   # key and adjustments
-  if(!(key %in% c("hn","hr","unif"))){
-    stop("key function must be \"hn\", \"hr\" or \"unif\".")
-  }else{
-    # keep the name for the key function
-    key.name <- switch(key,
-                       hn="half-normal",
-                       hr="hazard-rate",
-                       unif="uniform"
-                      )
-  }
+  key <- match.arg(key)
+  # keep the name for the key function
+  key.name <- switch(key,
+                     hn="half-normal",
+                     hr="hazard-rate",
+                     unif="uniform"
+                    )
 
   # no uniform key with no adjustments
   if(is.null(adjustment) & key=="unif"){
     stop("Can't use uniform key with no adjustments.")
   }
   # uniform key must use width scaling
+  scale <- match.arg(scale)
   if(key=="unif"){
     scale <- "width"
   }
+
+  # check we have an allowed adjustment
   if(!is.null(adjustment)){
-    if(!(adjustment %in% c("cos","herm","poly"))){
-      stop("adjustment terms must be one of NULL, \"cos\", \"herm\" or \"poly\".")
-    }
+    adjustment <- match.arg(adjustment)
   }
+
+  # if the user supplied order=0, that's equivalent to adjustment=NULL
+  if(!is.null(order) & all(order==0)){
+    adjustment <- NULL
+  }
+
   if(!is.null(adjustment)){
 
     if(!is.null(order)){
@@ -379,37 +389,6 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
     aic.search<-FALSE
   }
 
-  ### binning
-  if(is.null(cutpoints)){
-    if(any(names(data)=="distend") & any(names(data)=="distbegin")){
-      message("No cutpoints specified but distbegin and distend are columns in data. Performing a binned analysis...")
-      binned <- TRUE
-      breaks <- sort(unique(c(data$distend,data$distbegin)))
-    }else{
-      binned <- FALSE
-      breaks <- NULL
-    }
-  }else{
-    # make sure that the first bin starts 0 or left
-    if(!is.null(left)){
-      if(cutpoints[1]!=left){
-        stop("The first cutpoint must be 0 or the left truncation distance!")
-      }
-    }else if(cutpoints[1]!=0){
-      stop("The first cutpoint must be 0 or the left truncation distance!")
-    }
-
-    # remove distbegin and distend if they already exist
-    if(any(names(data)=="distend") & any(names(data)=="distbegin")){
-      message("data already has distend and distbegin columns, removing them and appling binning as specified by cutpoints.")
-      data$distend<-NULL
-      data$distbegin<-NULL
-    }
-    # send off to create.bins to make the correct columns in data
-    data <- create.bins(data,cutpoints)
-    binned <- TRUE
-    breaks <- cutpoints
-  }
 
   # monotonicity
   if(is.logical(monotonicity)){
@@ -430,10 +409,10 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
     stop("monotonicity must be one of \"none\", FALSE, \"weak\" or \"strict\".")
   }
 
-  # can't do monotonicity and covariates, fail!
-  if(mono & formula!=as.formula("~1")){
-    stop("Monotonicity cannot be enforced with covariates.")
-  }
+  ## can't do monotonicity and covariates, fail!
+  #if(mono & formula!=as.formula("~1")){
+  #  stop("Monotonicity cannot be enforced with covariates.")
+  #}
 
   # set up the control options
   control <- list(optimx.method=method, showit=debug.level)
@@ -509,6 +488,9 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
                             " with ", adj.name,"(",
                             paste(order[1:i],collapse=","),
                             ") adjustments", sep="")
+    }else{
+      # if we have only the key function, turn off monotonicity
+      meta.data$mono <- meta.data$mono.strict <- FALSE
     }
 
     model.formula<-paste(model.formula,")",sep="")
@@ -573,20 +555,29 @@ ds<-function(data, truncation=NULL, transect="line", formula=~1, key="hn",
   }
 
   ## Now calculate abundance/density using dht()
-  if(!is.null(region.table) & !is.null(sample.table) & !is.null(obs.table)){
+  if(!is.null(region.table) & !is.null(sample.table)){
+
+    # if obs.table is not supplied, then data must have the Region.Label and
+    # Sample.Label columns
+    if(is.null(obs.table)){
+      if(c("Region.Label","Sample.Label") %in% names(data)){
+        message("No obs.table supplied but data does not have Region.Label or Sample.Label columns, only estimating detection function.\n")
+      }
+    }
 
     # from ?dht:
-    # For animals observed in tight clusters, that estimator gives the 
-    # abundance of groups (‘group=TRUE’ in ‘options’) and the abundance of 
-    # individuals is estimated as s_1/p_1 + s_2/p_2 + ... + s_n/p_n, where 
-    # s_i is the size (e.g., number of animals in the group) of each 
-    # observation(‘group=FALSE’ in ‘options’).
+    # For animals observed in tight clusters, that estimator gives the
+    # abundance of groups (‘group=TRUE’ in ‘options’) and the abundance of
+    # individuals is estimated as s_1/p_1 + s_2/p_2 + ... + s_n/p_n, where
+    # s_i is the size (e.g., number of animals in the group) of each
+    # observation(‘group=FALSE’ in ‘options’).
 
     dht.res<-dht(model,region.table,sample.table,obs.table,
                  options=list(#varflag=0,group=TRUE,
+                              group=dht.group,
                               convert.units=convert.units),se=TRUE)
   }else{
-    # if no information on the survey area was supplied just return 
+    # if no information on the survey area was supplied just return
     # the detection function stuff
     dht.res<-NULL
 

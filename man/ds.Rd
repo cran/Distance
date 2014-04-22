@@ -2,9 +2,12 @@
 \alias{ds}
 \title{Fit detection functions and calculate abundance from line or point transect data}
 \usage{
-ds(data, truncation = NULL, transect = "line", formula = ~1, key = "hn",
-  adjustment = "cos", order = NULL, scale = "width", cutpoints = NULL,
-  monotonicity = FALSE, region.table = NULL, sample.table = NULL,
+ds(data, truncation = ifelse(is.null(cutpoints), ifelse(is.null(data$distend),
+  max(data$distance), max(data$distend)), max(cutpoints)),
+  transect = c("line", "point"), formula = ~1, key = c("hn", "hr",
+  "unif"), adjustment = c("cos", "herm", "poly"), order = NULL,
+  scale = c("width", "scale"), cutpoints = NULL, monotonicity = "strict",
+  dht.group = FALSE, region.table = NULL, sample.table = NULL,
   obs.table = NULL, convert.units = 1, method = "nlminb", quiet = FALSE,
   debug.level = 0, initial.values = NULL)
 }
@@ -16,16 +19,19 @@ ds(data, truncation = NULL, transect = "line", formula = ~1, key = "hn",
   "Clusters/groups", below. One can supply data as a "flat
   file" and not supply \code{region.table},
   \code{sample.table} and \code{obs.table}, see "Data
-  format", below.}
+  format", below and \code{\link{flatfile}}.}
 
   \item{truncation}{either truncation distance (numeric,
   e.g. 5) or percentage (as a string, e.g. "15\%"). Can be
   supplied as a \code{list} with elements \code{left} and
   \code{right} if left truncation is required (e.g.
   \code{list(left=1,right=20)} or
-  \code{list(left="1\%",right="15\%")} or even When
-  specified as a percentage, the largest \code{right} and
-  smallest \code{left} percent distances are discarded.}
+  \code{list(left="1\%",right="15\%")} or even
+  \code{list(left="1",right="15\%")}). By default for exact
+  distances the maximum observed distance is used as the
+  right truncation. When the data is binned, the right
+  truncation is the largest bin end point. Default left
+  truncation is set to zero.}
 
   \item{transect}{indicates transect type "line" (default)
   or "point".}
@@ -69,9 +75,17 @@ ds(data, truncation = NULL, transect = "line", formula = ~1, key = "hn",
   \code{cutpoints} has precedence.}
 
   \item{monotonicity}{should the detection function be
-  constrained for monotonicity weakly ("weak"), strictly
-  ("strict") or not at all ("none" or \code{FALSE}). See
-  Montonicity, below. (Default \code{FALSE}).}
+  constrained for monotonicity weakly (\code{"weak"}),
+  strictly (\code{"strict"}) or not at all (\code{"none"}
+  or \code{FALSE}). See Montonicity, below. (Default
+  \code{"strict"}).}
+
+  \item{dht.group}{should density abundance estimates
+  consider all groups to be size 1 (abundance of groups)
+  \code{dht.group=TRUE} or should the abundance of
+  individuals (group size is taken into account),
+  \code{dht.group=FALSE}. Default is \code{FALSE}
+  (abundance of individuals is calculated).}
 
   \item{region.table}{\code{data.frame} with two columns:
   \tabular{ll}{ \code{Region.Label} \tab label for the
@@ -101,8 +115,8 @@ ds(data, truncation = NULL, transect = "line", formula = ~1, key = "hn",
   implying all of the units are "correct" already.)}
 
   \item{method}{optimization method to use (any method
-  usable by \code{\link{optim}} or \code{\link{optimx}}).
-  Defaults to "nlminb".}
+  usable by \code{\link{optim}} or \pkg{optimx}). Defaults
+  to "nlminb".}
 
   \item{debug.level}{print debugging output. 0=none, 1-3
   increasing level of debugging output.}
@@ -128,10 +142,14 @@ examples below illustrate some basic types of analysis
 using \code{ds()}.
 }
 \section{Details}{
-  If abundance estimates are required the
-  \code{data.frame}s \code{region.table},
-  \code{sample.table} and \code{obs.table} must be
-  supplied.
+  If abundance estimates are required then the
+  \code{data.frame}s \code{region.table} and
+  \code{sample.table} must be supplied. If \code{data} does
+  not contain the columns \code{Region.Label} and
+  \code{Sample.Label} thenthe \code{data.frame}
+  \code{obs.table} must also be supplied. Note that
+  stratification only applies to abundance estimates and
+  not at the detection function level.
 }
 
 \section{Clusters/groups}{
@@ -141,7 +159,51 @@ using \code{ds()}.
   estimated and density/abundance will be based on a
   clustered analsis of the data. Setting this column to be
   \code{NULL} will perform a non-clustred analysis (for
-  example if "size" means something else if your dataset).
+  example if "\code{size}" means something else in your
+  dataset).
+}
+
+\section{Truncation}{
+  The right truncation point is by default set to be
+  largest observed distance or bin end point. This is a
+  default will not be appropriate for all data and can
+  often be the cause of model convergence failures. It is
+  recommended that one plots a histogram of the observed
+  distances prior to model fitting so as to get a feel for
+  an appropriate truncation distance. (Similar arguments go
+  for left truncation, if appropriate). Buckland et al
+  (2001) provide guidelines on truncation.
+
+  When specified as a percentage, the largest \code{right}
+  and smallest \code{left} percent distances are discarded.
+  Percentages cannot be supplied when using binned data.
+}
+
+\section{Binning}{
+  Note that binning is performed such that bin 1 is all
+  distances greater or equal to cutpoint 1 (>=0 or left
+  truncation distance) and less than cutpoint 2. Bin 2 is
+  then distances greater or equal to cutpoint 2 and less
+  than cutpoint 3 and so on.
+}
+
+\section{Monotonicity}{
+  When adjustment terms are used, it is possible for the
+  detection function to not always decrease with increasing
+  distance. This is unrealistic and can lead to bias. To
+  avoid this, the detection function can be constrained for
+  monotonicity.
+
+  Monotonicity constraints are supported in a similar way
+  to that described in Buckland et al (2001). 20 equally
+  spaced points over the range of the detection function
+  (left to right truncation) are evaluated at each round of
+  the optimisation and the function is constrained to be
+  either always less than it's value at zero
+  (\code{"weak"}) or such that each value is less than or
+  equal to the previous point (monotonically decreasing;
+  \code{"strict"}). See also \code{\link{check.mono}} in
+  \code{mrds}.
 }
 
 \section{Units}{
@@ -180,32 +242,6 @@ using \code{ds()}.
   distance and .1 to convert km to 100m units).
 }
 
-\section{Monotonicity}{
-  When adjustment terms are used, it is possible for the
-  detection function to not always decrease with increasing
-  distance.  This is unrealistic and can lead to bias. To
-  avoid this, the detection function can be constrained for
-  monotonicity.
-
-  Monotonicity constraints are supported in a similar way
-  to that described in Buckland et al (2001). 20 equally
-  spaced points over the range of the detection function
-  (left to right truncation) are evaluated at each round of
-  the optimisation and the function is constrained to be
-  either always less than it's value at zero
-  (\code{"weak"}) or such that each value is less than or
-  equal to the previous point (monotonically decreasing;
-  \code{"strict"}).
-}
-
-\section{Binning}{
-  Note that binning is performed such that bin 1 is all
-  distances greater or equal to cutpoint 1 (>=0 or left
-  truncation distance) and less than cutpoint 2. Bin 2 is
-  then distances greater or equal to cutpoint 2 and less
-  than cutpoint 3 and so on.
-}
-
 \section{Data format}{
   One can supply \code{data} only to simply fit a detection
   function. However, if abundance/density estimates are
@@ -218,14 +254,15 @@ using \code{ds()}.
   other tables. This usually means that there are
   additional columns named: \code{Sample.Label},
   \code{Region.Label}, \code{Effort} and \code{Area} for
-  each observation.
+  each observation. See \code{\link{flatfile}} for an
+  example.
 }
 \examples{
 # An example from mrds, the golf tee data.
 library(Distance)
 data(book.tee.data)
 tee.data<-book.tee.data$book.tee.dataframe[book.tee.data$book.tee.dataframe$observer==1,]
-ds.model<-ds(tee.data,4,monotonicity="strict")
+ds.model<-ds(tee.data,4)
 summary(ds.model)
 plot(ds.model)
 
@@ -236,7 +273,7 @@ region<-book.tee.data$book.tee.region
 samples<-book.tee.data$book.tee.samples
 obs<-book.tee.data$book.tee.obs
 
-ds.dht.model<-ds(tee.data,4,region.table=region,monotonicity="strict",
+ds.dht.model<-ds(tee.data,4,region.table=region,
              sample.table=samples,obs.table=obs)
 summary(ds.dht.model)
 
@@ -244,9 +281,12 @@ summary(ds.dht.model)
 ds.model.cos2<-ds(tee.data,4,adjustment="cos",order=2)
 summary(ds.model.cos2)
 
-# specify order 2 and 3 cosine adjustments - LOTS of non-monotonicity!
-ds.model.cos24<-ds(tee.data,4,adjustment="cos",order=c(2,3))
-summary(ds.model.cos24)
+# specify order 2 and 3 cosine adjustments, turning monotonicity
+# constraints off
+ds.model.cos24<-ds(tee.data,4,adjustment="cos",order=c(2,3),
+                   monotonicity=FALSE)
+# check for non-monotonicity -- actually no problems
+check.mono(ds.model.cos24$ddf,plot=TRUE,n.pts=100)
 
 # truncate the largest 10\% of the data and fit only a hazard-rate
 # detection function

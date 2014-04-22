@@ -1,4 +1,4 @@
 library(testthat)
 library(Distance)
 
-#test_check("Distance")
+test_check("Distance")
