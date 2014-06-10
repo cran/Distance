@@ -12,7 +12,7 @@
 #' By default for exact distances the maximum observed distance is used as the right truncation. When the data is binned, the right truncation is the largest bin end point. Default left truncation is set to zero.
 #' @param transect indicates transect type "line" (default) or "point".
 #' @param formula formula for the scale parameter. For a CDS analysis leave this as its default \code{~1}.
-#' @param key key function to use; "hn" gives half-normal (default), "hr" gives hazard-rate and "unif" gives uniform.
+#' @param key key function to use; "hn" gives half-normal (default), "hr" gives hazard-rate and "unif" gives uniform. Note that if uniform key is used, covariates cannot be included in the model.
 #' @param adjustment adjustment terms to use; "cos" gives cosine (default),
 #'        "herm" gives Hermite polynomial and "poly" gives simple polynomial.
 #'        "cos" is recommended. A value of \code{NULL} indicates that no
@@ -35,7 +35,7 @@
 #'        \code{distend} then these will be used as bins if \code{cutpoints}
 #'        is not specified. If both are specified, \code{cutpoints} has
 #'        precedence.
-#' @param monotonicity should the detection function be constrained for monotonicity weakly (\code{"weak"}), strictly (\code{"strict"}) or not at all (\code{"none"} or \code{FALSE}). See Montonicity, below. (Default \code{"strict"}).
+#' @param monotonicity should the detection function be constrained for monotonicity weakly (\code{"weak"}), strictly (\code{"strict"}) or not at all (\code{"none"} or \code{FALSE}). See Montonicity, below. (Default \code{"strict"}). By default it is on for models without covariates in the detection function, off when covariates are present.
 #' @param dht.group should density abundance estimates consider all groups to be
 #'        size 1 (abundance of groups) \code{dht.group=TRUE} or should the
 #'        abundance of individuals (group size is taken into account),
@@ -75,7 +75,7 @@
 #'              Default value FALSE.
 #'
 #' @param initial.values a \code{list} of named starting values, see
-#'        \code{\link{ddf}}. Only allowed when AIC term selection is not used.
+#'        \code{\link{mrds-opt}}. Only allowed when AIC term selection is not used.
 #'
 #' @return a list with elements:
 #'        \tabular{ll}{\code{ddf} \tab a detection function model object.\cr
@@ -96,9 +96,11 @@
 #'
 #'  @section Binning: Note that binning is performed such that bin 1 is all distances greater or equal to cutpoint 1 (>=0 or left truncation distance) and less than cutpoint 2. Bin 2 is then distances greater or equal to cutpoint 2 and less than cutpoint 3 and so on.
 #'
-#' @section Monotonicity: When adjustment terms are used, it is possible for the detection function to not always decrease with increasing distance. This is unrealistic and can lead to bias. To avoid this, the detection function can be constrained for monotonicity.
+#' @section Monotonicity: When adjustment terms are used, it is possible for the detection function to not always decrease with increasing distance. This is unrealistic and can lead to bias. To avoid this, the detection function can be constrained for monotonicity (and is by default for detection functions without covariates).
 #'
 #'  Monotonicity constraints are supported in a similar way to that described in Buckland et al (2001). 20 equally spaced points over the range of the detection function (left to right truncation) are evaluated at each round of the optimisation and the function is constrained to be either always less than it's value at zero (\code{"weak"}) or such that each value is less than or equal to the previous point (monotonically decreasing; \code{"strict"}). See also \code{\link{check.mono}} in \code{mrds}.
+#'
+#' Even with no monotonicity constraints, checks are still made that the detection function is monotonic, see \code{\link{check.mono}}.
 #'
 # THIS IS STOLEN FROM mrds, sorry Jeff!
 #' @section Units:
@@ -131,6 +133,7 @@
 #'  @section Data format: One can supply \code{data} only to simply fit a detection function. However, if abundance/density estimates are necessary further information is required. Either the \code{region.table}, \code{sample.table} and \code{obs.table} \code{data.frame}s can be supplied or all data can be supplied as a "flat file" in the \code{data} argument. In this format each row in data has additional information that would ordinarily be in the other tables. This usually means that there are additional columns named: \code{Sample.Label}, \code{Region.Label}, \code{Effort} and \code{Area} for each observation. See \code{\link{flatfile}} for an example.
 #'
 #' @author David L. Miller
+#' @seealso \code{\link{flatfile}}
 #' @export
 #'
 #' @references
@@ -165,10 +168,16 @@
 #'
 #' # specify order 2 and 3 cosine adjustments, turning monotonicity
 #' # constraints off
-#' ds.model.cos24<-ds(tee.data,4,adjustment="cos",order=c(2,3),
+#' ds.model.cos23<-ds(tee.data,4,adjustment="cos",order=c(2,3),
 #'                    monotonicity=FALSE)
 #' # check for non-monotonicity -- actually no problems
-#' check.mono(ds.model.cos24$ddf,plot=TRUE,n.pts=100)
+#' check.mono(ds.model.cos23$ddf,plot=TRUE,n.pts=100)
+#'
+#' # include both a covariate and adjustment terms in the model
+#' ds.model.cos2.sex <- ds(tee.data,4,adjustment="cos",order=2,
+#'                         monotonicity=FALSE, formula=~as.factor(sex))
+#' # check for non-monotonicity -- actually no problems
+#' check.mono(ds.model.cos2.sex$ddf,plot=TRUE,n.pts=100)
 #'
 #' # truncate the largest 10% of the data and fit only a hazard-rate
 #' # detection function
@@ -185,7 +194,10 @@ ds<-function(data, truncation=ifelse(is.null(cutpoints),
              formula=~1, key=c("hn","hr","unif"),
              adjustment=c("cos","herm","poly"),
              order=NULL, scale=c("width","scale"),
-             cutpoints=NULL, monotonicity="strict", dht.group=FALSE,
+             cutpoints=NULL, dht.group=FALSE,
+             monotonicity=ifelse(formula==~1,
+                                 "strict",
+                                 "none"),
              region.table=NULL, sample.table=NULL, obs.table=NULL,
              convert.units=1, method="nlminb", quiet=FALSE, debug.level=0,
              initial.values=NULL){
@@ -307,6 +319,10 @@ ds<-function(data, truncation=ifelse(is.null(cutpoints),
   if(is.null(adjustment) & key=="unif"){
     stop("Can't use uniform key with no adjustments.")
   }
+  # no covariates with uniform
+  if((as.formula(formula)!=~1) & key=="unif"){
+    stop("Can't use uniform key with covariates.")
+  }
   # uniform key must use width scaling
   scale <- match.arg(scale)
   if(key=="unif"){
@@ -331,9 +347,9 @@ ds<-function(data, truncation=ifelse(is.null(cutpoints),
           stop("Adjustment orders must be integers.")
       }
 
-      if(formula != ~1){
-        stop("Cannot use both adjustments and covariates, choose one!")
-      }
+      #if(formula != ~1){
+      #  stop("Cannot use both adjustments and covariates, choose one!")
+      #}
 
       # check for each adjustment type
       order<-sort(order)
@@ -541,7 +557,7 @@ ds<-function(data, truncation=ifelse(is.null(cutpoints),
         model <- NULL
       }else{
         message(paste0("\n\nError in model fitting, returning: ",
-                       sub("^Fitting ","",this.message)))
+                       sub("^Fitting ","",last.model$name.message)))
         message(paste0("\n  Error: ",model[1],"\n"))
         model <- NULL
         model <- last.model
