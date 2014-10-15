@@ -1,4 +1,4 @@
-d443ef19482a4b555407fd9d6cdf7a44 *DESCRIPTION
+8a79258b52ad3dc0c3088874e18190ff *DESCRIPTION
 81d50c52433e76cfb2ff64db68c39a6e *NAMESPACE
 ca587ce2fc645818b0f31a1d5081a141 *NEWS
 4adb2f0442d354b8c7f97ec8684cecbc *R/Distance-package.R
@@ -25,6 +25,6 @@ d156f022ea1866cbc8d49ff0c6d0a6cc *man/print.summary.dsmodel.Rd
 03d826493c39fc087a9637f19658446b *man/summary.dsmodel.Rd
 bf7132340dcf2df46e9ccaf538b8ec56 *tests/testthat.R
 764d3313ee2f21b7f8d9ab6eed50ff44 *tests/testthat/test_dht.R
-765e0ba99c03073381a123f8ff96c674 *tests/testthat/test_ds.R
-9d80619727c1f65bfb2e2c4bf181fc4e *tests/testthat/test_pt.R
+76843e81103e1722408e083f3869cdeb *tests/testthat/test_ds.R
+437fe619f4f9775ba5fddaac4a7b3287 *tests/testthat/test_pt.R
 ed9fd6d63da5432db1a6fcfd9c83c007 *tests/testthat/test_simpletable.R
