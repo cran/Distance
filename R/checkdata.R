@@ -31,6 +31,11 @@ checkdata<-function(data,region.table=NULL,sample.table=NULL,obs.table=NULL){
   }
   if(!any(names(data)=="object")){
     data<-cbind(data,object=1:nrow(data))
+  }else{
+    # check that the object IDs are unique
+    if(length(data$object)!=length(unique(data$object))){
+      stop("Not all object IDs are unique, check data.")
+    }
   }
 
   if(is.null(region.table) & is.null(sample.table) & is.null(obs.table)){
@@ -66,13 +71,17 @@ checkdata<-function(data,region.table=NULL,sample.table=NULL,obs.table=NULL){
       rownames(obs.table) <- 1:nrow(obs.table)
 
       # drop Region and Sample label columns
-      data <- data[,!c(colnames(data) %in% c("Region.Label","Sample.Label"))]
+      # actually don't do this because then we can't use subset= in dht
+      #data <- data[,!c(colnames(data) %in% c("Region.Label","Sample.Label"))]
       rownames(data) <- 1:nrow(data)
 
       # remove the NA rows
       data <- data[!is.na(data$distance),]
+    }else if(all(tolower(c("Region.Label", "Area", "Sample.Label",
+                           "Effort", "object")) %in%
+                 tolower(colnames(data)))){
+      stop("flatfile column names detected but with incorrect cAsE, correct the names and re-run. See ?flatfile for details.")
     }
-
   }else{
     # check that dht info has the right column titles
     if(!is.null(region.table) & !is.null(sample.table) & !is.null(obs.table)){
