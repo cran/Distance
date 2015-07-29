@@ -7,12 +7,14 @@
 #' @param sample.table as in \code{ds}
 #' @param region.table as in \code{ds}
 #' @param obs.table as in \code{ds}
+#' @param formula formula for the covariates
 #'
 #' @return Throws an error if something goes wrong, otherwise returns a
 #'  \code{data.frame}.
 #'
 #' @author David L. Miller
-checkdata<-function(data,region.table=NULL,sample.table=NULL,obs.table=NULL){
+checkdata<-function(data, region.table=NULL, sample.table=NULL, obs.table=NULL,
+                    formula=~1){
 
    ## make sure that the data are in the right format first
   if(is.null(data$distance)){
@@ -33,8 +35,21 @@ checkdata<-function(data,region.table=NULL,sample.table=NULL,obs.table=NULL){
     data<-cbind(data,object=1:nrow(data))
   }else{
     # check that the object IDs are unique
-    if(length(data$object)!=length(unique(data$object))){
+    # first need to remove the rows with NA distances used for padding
+    # below
+    data_no_NA <- data[!is.na(data$distance),]
+    if(length(data_no_NA$object)!=length(unique(data_no_NA$object))){
       stop("Not all object IDs are unique, check data.")
+    }
+  }
+
+  ## check that the covariates that are specified exist in the data
+  formula <- as.formula(formula)
+  if(formula!=~1){
+    vars_in_data <- all.vars(formula) %in% names(data)
+    if(!all(vars_in_data)){
+      stop(paste("Variable(s):", paste(all.vars(formula)[!vars_in_data],collapse=", "),
+                 "are in the model formula but not in the data."))
     }
   }
 
@@ -47,6 +62,12 @@ checkdata<-function(data,region.table=NULL,sample.table=NULL,obs.table=NULL){
            colnames(data))){
       ## construct region table
       region.table <- unique(data[,c("Region.Label", "Area")])
+      # make sure that the region areas are consistent -- the above can
+      # lead to duplicate labels if the areas are not the same for a given
+      # region label
+      if(nrow(region.table) != length(unique(data$Region.Label))){
+        stop("Region areas are not consistent.")
+      }
       rownames(region.table) <- 1:nrow(region.table)
       # drop Area column
       data <- data[,!c(colnames(data) %in% "Area")]
