@@ -4,15 +4,16 @@
 #' page for that function for more information.
 #'
 #' @param x an object of class \code{dsmodel}.
+#' @param pl.den shading density for histogram (default \code{0}, no shading)
 #' @param ... extra arguments to be passed to \code{\link{plot.ds}}.
 #' @return \code{NULL}, just produces a plot.
 #' @aliases plot.dsmodel
 #' @export
 #' @author David L. Miller
 #' @importFrom graphics plot
-plot.dsmodel <- function(x,...){
+plot.dsmodel <- function(x, pl.den=0, ...){
 
-  plot(x$ddf,...)
+  plot(x$ddf, pl.den=pl.den, ...)
 
   invisible()
 }
