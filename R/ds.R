@@ -56,6 +56,8 @@
 #'
 #' When specified as a percentage, the largest \code{right} and smallest \code{left} percent distances are discarded. Percentages cannot be supplied when using binned data.
 #'
+#' For left truncation, there are two options: (1) fit a detection function to the truncated data as is (this is what happens when you set \code{left}). This does not assume that g(x)=1 at the truncation point. (2) manually remove data with distances less than the left truncation distance -- effectively move the centreline out to be the truncation distance (this needs to be done before calling \code{ds}). This then assumes that detection is certain at the left truncation distance. The former strategy has a weaker assumption, but will give higher variance as the detection function close to the line has no data to tell it where to fit -- it will be relying on the data from after the left truncation point and the assumed shape of the detection function. The latter is most appropriate in the case of aerial surveys, where some area under the plane is not visible to the observers, but their probability of detection is certain at the smallest distance.
+#'
 #'  @section Binning: Note that binning is performed such that bin 1 is all distances greater or equal to cutpoint 1 (>=0 or left truncation distance) and less than cutpoint 2. Bin 2 is then distances greater or equal to cutpoint 2 and less than cutpoint 3 and so on.
 #'
 #' @section Monotonicity: When adjustment terms are used, it is possible for the detection function to not always decrease with increasing distance. This is unrealistic and can lead to bias. To avoid this, the detection function can be constrained for monotonicity (and is by default for detection functions without covariates).
@@ -568,12 +570,18 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
     # if obs.table is not supplied, then data must have the Region.Label and
     # Sample.Label columns
     if(is.null(obs.table)){
-      if(all(c("Region.Label","Sample.Label") %in% names(data))){
-        dht.res <- dht(model,region.table,sample.table,
-                     options=list(#varflag=0,group=TRUE,
-                                  group=dht.group,
-                                  convert.units=convert.units),se=TRUE)
+      if(all(c("Region.Label", "Sample.Label") %in% names(data))){
 
+        if(any(is.na(model$hessian))){
+          message("Some variance-covariance matrix elements were NA, possible numerical problems; only estimating detection function.\n")
+          dht.res <- NULL
+        }else{
+
+          dht.res <- dht(model, region.table, sample.table,
+                         options=list(#varflag=0,group=TRUE,
+                                    group=dht.group,
+                                    convert.units=convert.units), se=TRUE)
+        }
       }else{
         message("No obs.table supplied nor does data have Region.Label and Sample.Label columns, only estimating detection function.\n")
         dht.res <- NULL
@@ -587,10 +595,15 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
       # s_i is the size (e.g., number of animals in the group) of each
       # observation(group=FALSE in options).
 
-      dht.res <- dht(model,region.table,sample.table,obs.table,
-                   options=list(#varflag=0,group=TRUE,
-                                group=dht.group,
-                                convert.units=convert.units),se=TRUE)
+      if(any(is.na(model$hessian))){
+        message("Some variance-covariance matrix elements were NA, possible numerical problems; only estimating detection function.\n")
+        dht.res <- NULL
+      }else{
+        dht.res <- dht(model, region.table, sample.table, obs.table,
+                       options=list(#varflag=0,group=TRUE,
+                                    group=dht.group,
+                                    convert.units=convert.units), se=TRUE)
+      }
     }
   }else{
     # if no information on the survey area was supplied just return
