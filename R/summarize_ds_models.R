@@ -10,6 +10,16 @@
 #' @param delta_only only output AIC differences (default \code{TRUE})
 #' @author David L Miller
 #' @export
+#' @examples
+#' \dontrun{
+#' # fit some models to the golf tee data
+#' library(Distance)
+#' data(book.tee.data)
+#' tee.data<-book.tee.data$book.tee.dataframe[book.tee.data$book.tee.dataframe$observer==1,]
+#' model_hn <- ds(tee.data,4)
+#' model_hr <- ds(tee.data,4, key="hr")
+#' summarize_ds_models(model_hr, model_hn, output="plain")
+#'}
 summarize_ds_models <- function(..., sort="AIC", output="latex", delta_only=TRUE){
 
   # get the models
@@ -61,9 +71,9 @@ summarize_ds_models <- function(..., sort="AIC", output="latex", delta_only=TRUE
     desc <- gsub(" key function","",model.description(model$ddf))
     # only get CvM if not binned
     if(model$ddf$meta.data$binned){
-      gof <- NA
+      gof <- suppressMessages(gof_ds(model, chisq=TRUE)$chisquare$chi1$p)
     }else{
-      gof <- ddf.gof(model$ddf, qq=FALSE)$dsgof$CvM$p
+      gof <- suppressMessages(ddf.gof(model$ddf, qq=FALSE)$dsgof$CvM$p)
     }
     ret <- c(desc,
              formula,

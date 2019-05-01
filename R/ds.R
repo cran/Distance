@@ -15,10 +15,10 @@
 #' @param formula formula for the scale parameter. For a CDS analysis leave this as its default \code{~1}.
 #' @param key key function to use; "hn" gives half-normal (default), "hr" gives hazard-rate and "unif" gives uniform. Note that if uniform key is used, covariates cannot be included in the model.
 #' @param adjustment adjustment terms to use; \code{"cos"} gives cosine (default), \code{"herm"} gives Hermite polynomial and \code{"poly"} gives simple polynomial. \code{"cos"} is recommended. A value of \code{NULL} indicates that no adjustments are to be fitted.
-#' @param order orders of the adjustment terms to fit (as a vector/scalar), the default value (\code{NULL}) will select via AIC up to order 5. If a single number is given, that number is expanded to be \code{seq(term_min, order, by=1)} where \code{term.min} is the appropriate minimum order for this type of adjustment. For cosine adjustments, valid orders are integers greater than 2 (except when a uniform key is used, when the minimum order is 1). For Hermite polynomials, even integers equal or greater than 2 are allowed and for simple polynomials even integers equal or greater than 2 are allowed (though note these will be multiplied by 2, see Buckland et al, 2001 for details on their specification). By default, AIC selection will try up to 5 adjustments, beyond that you must specify these manually, e.g. \code{order=2:6} and perform your own AIC selection.
+#' @param order orders of the adjustment terms to fit (as a vector/scalar), the default value (\code{NULL}) will select via AIC up to \code{max.adjustments} adjustments. If a single number is given, that number is expanded to be \code{seq(term_min, order, by=1)} where \code{term.min} is the appropriate minimum order for this type of adjustment. For cosine adjustments, valid orders are integers greater than 2 (except when a uniform key is used, when the minimum order is 1). For Hermite polynomials, even integers equal or greater than 2 are allowed and for simple polynomials even integers equal or greater than 2 are allowed (though note these will be multiplied by 2, see Buckland et al, 2001 for details on their specification).
 #' @param scale the scale by which the distances in the adjustment terms are divided. Defaults to \code{"width"}, scaling by the truncation distance. If the key is uniform only \code{"width"} will be used. The other option is \code{"scale"}: the scale parameter of the detection
 #' @param cutpoints if the data are binned, this vector gives the cutpoints of the bins. Ensure that the first element is 0 (or the left truncation distance) and the last is the distance to the end of the furthest bin. (Default \code{NULL}, no binning.) Note that if \code{data} has columns \code{distbegin} and \code{distend} then these will be used as bins if \code{cutpoints} is not specified. If both are specified, \code{cutpoints} has precedence.
-#' @param monotonicity should the detection function be constrained for monotonicity weakly (\code{"weak"}), strictly (\code{"strict"}) or not at all (\code{"none"} or \code{FALSE}). See Montonicity, below. (Default \code{"strict"}). By default it is on for models without covariates in the detection function, off when covariates are present.
+#' @param monotonicity should the detection function be constrained for monotonicity weakly (\code{"weak"}), strictly (\code{"strict"}) or not at all (\code{"none"} or \code{FALSE}). See Monotonicity, below. (Default \code{"strict"}). By default it is on for models without covariates in the detection function, off when covariates are present.
 #' @param dht.group should density abundance estimates consider all groups to be size 1 (abundance of groups) \code{dht.group=TRUE} or should the abundance of individuals (group size is taken into account), \code{dht.group=FALSE}. Default is \code{FALSE} (abundance of individuals is calculated).
 #' @param region.table \code{data.frame} with two columns:
 #'        \tabular{ll}{ \code{Region.Label} \tab label for the region\cr
@@ -38,8 +38,9 @@
 #' @param convert.units conversion between units for abundance estimation, see "Units", below. (Defaults to 1, implying all of the units are "correct" already.)
 #' @param method optimization method to use (any method usable by \code{\link{optim}} or \pkg{optimx}). Defaults to \code{"nlminb"}.
 #' @param debug.level print debugging output. \code{0}=none, \code{1-3} increasing levels of debugging output.
-#' @param quiet surpress non-essential messages (useful for bootstraps etc). Default value \code{FALSE}.
+#' @param quiet suppress non-essential messages (useful for bootstraps etc). Default value \code{FALSE}.
 #' @param initial.values a \code{list} of named starting values, see \code{\link{mrds-opt}}. Only allowed when AIC term selection is not used.
+#' @param max.adjustments maximum number of adjustments to try (default 5) only used when \code{order=NULL}.
 #' @return a list with elements:
 #'        \tabular{ll}{\code{ddf} \tab a detection function model object.\cr
 #'                     \code{dht} \tab abundance/density information (if survey
@@ -49,7 +50,7 @@
 #' If abundance estimates are required then the \code{data.frame}s \code{region.table} and \code{sample.table} must be supplied. If \code{data} does not contain the columns \code{Region.Label} and \code{Sample.Label} then the \code{data.frame} \code{obs.table} must also be supplied. Note that stratification only applies to abundance estimates and not at the detection function level.
 #'
 #' @section Clusters/groups:
-#'  Note that if the data contains a column named \code{size} and \code{region.table}, \code{sample.table} and \code{obs.table} are supplied, cluster size will be estimated and density/abundance will be based on a clustered analsis of the data. Setting this column to be \code{NULL} will perform a non-clustred analysis (for example if "\code{size}" means something else in your dataset).
+#'  Note that if the data contains a column named \code{size} and \code{region.table}, \code{sample.table} and \code{obs.table} are supplied, cluster size will be estimated and density/abundance will be based on a clustered analysis of the data. Setting this column to be \code{NULL} will perform a non-clustered analysis (for example if "\code{size}" means something else in your dataset).
 #'
 #' @section Truncation:
 #' The right truncation point is by default set to be largest observed distance or bin end point. This is a default will not be appropriate for all data and can often be the cause of model convergence failures. It is recommended that one plots a histogram of the observed distances prior to model fitting so as to get a feel for an appropriate truncation distance. (Similar arguments go for left truncation, if appropriate). Buckland et al (2001) provide guidelines on truncation.
@@ -58,9 +59,11 @@
 #'
 #' For left truncation, there are two options: (1) fit a detection function to the truncated data as is (this is what happens when you set \code{left}). This does not assume that g(x)=1 at the truncation point. (2) manually remove data with distances less than the left truncation distance -- effectively move the centreline out to be the truncation distance (this needs to be done before calling \code{ds}). This then assumes that detection is certain at the left truncation distance. The former strategy has a weaker assumption, but will give higher variance as the detection function close to the line has no data to tell it where to fit -- it will be relying on the data from after the left truncation point and the assumed shape of the detection function. The latter is most appropriate in the case of aerial surveys, where some area under the plane is not visible to the observers, but their probability of detection is certain at the smallest distance.
 #'
-#'  @section Binning: Note that binning is performed such that bin 1 is all distances greater or equal to cutpoint 1 (>=0 or left truncation distance) and less than cutpoint 2. Bin 2 is then distances greater or equal to cutpoint 2 and less than cutpoint 3 and so on.
+#' @section Binning:
+#' Note that binning is performed such that bin 1 is all distances greater or equal to cutpoint 1 (>=0 or left truncation distance) and less than cutpoint 2. Bin 2 is then distances greater or equal to cutpoint 2 and less than cutpoint 3 and so on.
 #'
-#' @section Monotonicity: When adjustment terms are used, it is possible for the detection function to not always decrease with increasing distance. This is unrealistic and can lead to bias. To avoid this, the detection function can be constrained for monotonicity (and is by default for detection functions without covariates).
+#' @section Monotonicity: 
+#' When adjustment terms are used, it is possible for the detection function to not always decrease with increasing distance. This is unrealistic and can lead to bias. To avoid this, the detection function can be constrained for monotonicity (and is by default for detection functions without covariates).
 #'
 #'  Monotonicity constraints are supported in a similar way to that described in Buckland et al (2001). 20 equally spaced points over the range of the detection function (left to right truncation) are evaluated at each round of the optimisation and the function is constrained to be either always less than it's value at zero (\code{"weak"}) or such that each value is less than or equal to the previous point (monotonically decreasing; \code{"strict"}). See also \code{\link{check.mono}} in \code{mrds}.
 #'
@@ -94,7 +97,8 @@
 #'  units of hectares (100 to convert meters to 100 meters for distance and
 #'  .1 to convert km to 100m units).
 #'
-#'  @section Data format: One can supply \code{data} only to simply fit a detection function. However, if abundance/density estimates are necessary further information is required. Either the \code{region.table}, \code{sample.table} and \code{obs.table} \code{data.frame}s can be supplied or all data can be supplied as a "flat file" in the \code{data} argument. In this format each row in data has additional information that would ordinarily be in the other tables. This usually means that there are additional columns named: \code{Sample.Label}, \code{Region.Label}, \code{Effort} and \code{Area} for each observation. See \code{\link{flatfile}} for an example.
+#' @section Data format:
+#' One can supply \code{data} only to simply fit a detection function. However, if abundance/density estimates are necessary further information is required. Either the \code{region.table}, \code{sample.table} and \code{obs.table} \code{data.frame}s can be supplied or all data can be supplied as a "flat file" in the \code{data} argument. In this format each row in data has additional information that would ordinarily be in the other tables. This usually means that there are additional columns named: \code{Sample.Label}, \code{Region.Label}, \code{Effort} and \code{Area} for each observation. See \code{\link{flatfile}} for an example.
 #'
 #' @author David L. Miller
 #' @seealso \code{\link{flatfile}}
@@ -111,8 +115,8 @@
 #' # An example from mrds, the golf tee data.
 #' library(Distance)
 #' data(book.tee.data)
-#' tee.data<-book.tee.data$book.tee.dataframe[book.tee.data$book.tee.dataframe$observer==1,]
-#' ds.model <- ds(tee.data,4)
+#' tee.data<-book.tee.data$book.tee.dataframe[book.tee.data$book.tee.dataframe$observer==1, ]
+#' ds.model <- ds(tee.data, 4)
 #' summary(ds.model)
 #' plot(ds.model)
 #'
@@ -123,30 +127,31 @@
 #' samples <- book.tee.data$book.tee.samples
 #' obs <- book.tee.data$book.tee.obs
 #'
-#' ds.dht.model <- ds(tee.data,4,region.table=region,
-#'              sample.table=samples,obs.table=obs)
+#' ds.dht.model <- ds(tee.data, 4, region.table=region,
+#'                    sample.table=samples, obs.table=obs)
 #' summary(ds.dht.model)
 #'
 #' # specify order 2 cosine adjustments
-#' ds.model.cos2 <- ds(tee.data,4,adjustment="cos",order=2)
+#' ds.model.cos2 <- ds(tee.data, 4, adjustment="cos", order=2)
 #' summary(ds.model.cos2)
 #'
 #' # specify order 2 and 3 cosine adjustments, turning monotonicity
 #' # constraints off
-#' ds.model.cos23 <- ds(tee.data,4,adjustment="cos",order=c(2,3),
+#' ds.model.cos23 <- ds(tee.data, 4, adjustment="cos", order=c(2, 3),
 #'                    monotonicity=FALSE)
 #' # check for non-monotonicity -- actually no problems
-#' check.mono(ds.model.cos23$ddf,plot=TRUE,n.pts=100)
+#' check.mono(ds.model.cos23$ddf, plot=TRUE, n.pts=100)
 #'
 #' # include both a covariate and adjustment terms in the model
-#' ds.model.cos2.sex <- ds(tee.data,4,adjustment="cos",order=2,
+#' ds.model.cos2.sex <- ds(tee.data, 4, adjustment="cos", order=2,
 #'                         monotonicity=FALSE, formula=~as.factor(sex))
 #' # check for non-monotonicity -- actually no problems
-#' check.mono(ds.model.cos2.sex$ddf,plot=TRUE,n.pts=100)
+#' check.mono(ds.model.cos2.sex$ddf, plot=TRUE, n.pts=100)
 #'
 #' # truncate the largest 10% of the data and fit only a hazard-rate
 #' # detection function
-#' ds.model.hr.trunc <- ds(tee.data,truncation="10%",key="hr",adjustment=NULL)
+#' ds.model.hr.trunc <- ds(tee.data, truncation="10%", key="hr",
+#'                         adjustment=NULL)
 #' summary(ds.model.hr.trunc)
 #'
 #' # compare AICs between these models:
@@ -170,7 +175,7 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
                                  "none"),
              region.table=NULL, sample.table=NULL, obs.table=NULL,
              convert.units=1, method="nlminb", quiet=FALSE, debug.level=0,
-             initial.values=NULL){
+             initial.values=NULL, max.adjustments=5){
 
   # this routine just creates a call to mrds, it's not very exciting
   # or fancy, it does do a lot of error checking though
@@ -181,7 +186,7 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
   sample.table <- data$sample.table
   obs.table    <- data$obs.table
   data         <- data$data
-  
+
   # truncation
   if(is.null(truncation)){
     stop("Please supply truncation distance or percentage.")
@@ -243,7 +248,7 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
     if(any(names(data)=="distend") & any(names(data)=="distbegin")){
       message("Columns \"distbegin\" and \"distend\" in data: performing a binned analysis...")
       binned <- TRUE
-      breaks <- sort(unique(c(data$distend,data$distbegin)))
+      breaks <- sort(unique(c(data$distend, data$distbegin)))
     }else{
       binned <- FALSE
       breaks <- NULL
@@ -265,7 +270,7 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
       data$distbegin <- NULL
     }
     # send off to create.bins to make the correct columns in data
-    data <- create.bins(data,cutpoints)
+    data <- create.bins(data, cutpoints)
     binned <- TRUE
     breaks <- cutpoints
   }
@@ -281,9 +286,9 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
   key <- match.arg(key)
   # keep the name for the key function
   key.name <- switch(key,
-                     hn="half-normal",
-                     hr="hazard-rate",
-                     unif="uniform"
+                     hn   = "half-normal",
+                     hr   = "hazard-rate",
+                     unif = "uniform"
                     )
 
   # no uniform key with no adjustments
@@ -306,7 +311,7 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
   }
 
   # if the user supplied order=0, that's equivalent to adjustment=NULL
-  if(!is.null(order) & all(order==0)){
+  if((!is.null(order) & all(order==0)) | max.adjustments==0){
     adjustment <- NULL
   }
 
@@ -365,33 +370,34 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
       }else{
       # otherwise go ahead and set up the candidate adjustment orders
         aic.search <- TRUE
-        max.order <- 5
 
-        # this is according to p. 47 of IDS.
-        if(adjustment=="poly"){
-          order <- seq(1,max.order)
-        }else{
-          order <- seq(2,max.order)
-        }
-
-        # for Fourier...
+        # this is according to p. 47 of IDS
         if(key=="unif" & adjustment=="cos"){
-          order <- c(1,order)
-        }
-
-        if(adjustment=="herm" | adjustment=="poly"){
+          # for Fourier...
+          order <- seq(2, max.adjustments)
+          order <- c(1, order)
+        }else if(adjustment=="poly"){
+          # polynomials: even from 2
+          order <- seq(2, 2*max.adjustments, by=2)
+        }else if(adjustment=="herm"){
+          # hermite: even from 4
+          order <- seq(2, max.adjustments)
           order <- 2*order
-          order <- order[order<=2*max.order]
+          order <- order[1:max.adjustments]
+        }else if(adjustment=="cos"){
+          # cosine: by 1 from 2
+          order <- seq(2, max.adjustments+1)
+        }else{
+          stop("Bad adjustment term definition")
         }
-
       }
     }
 
     # keep the name for the adjustments
     adj.name <- switch(adjustment,
-                       cos="cosine",
-                       herm="Hermite",
-                       poly="simple polynomial"
+                       cos  = "cosine",
+                       herm = "Hermite",
+                       poly = "simple polynomial"
                       )
 
   }else{
@@ -497,6 +503,27 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
                             " with ", adj.name,"(",
                             paste(order[1:i],collapse=","),
                             ") adjustments", sep="")
+
+      # use the last parameter values as starting values if
+      # we are doing AIC search and we're at step 2 and onwards
+      if(aic.search && length(order[1:i]) > 1){
+        lastpar <- last.model$par
+        control$initial <- list()
+        if(key == "hr"){
+          control$initial$shape <- lastpar[1]
+          lastpar <- lastpar[-1]
+        }
+        if(key != "unif"){
+          control$initial$scale <- lastpar[1]
+          lastpar <- lastpar[-1]
+        }
+        if(length(lastpar)>0){
+          control$initial$adjustment <- lastpar
+        }
+
+        # add a space for a new parameter
+        control$initial$adjustment <- c(control$initial$adjustment, 0)
+      }
     }
 
     model.formula <- paste(model.formula,")",sep="")
@@ -576,11 +603,15 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
           message("Some variance-covariance matrix elements were NA, possible numerical problems; only estimating detection function.\n")
           dht.res <- NULL
         }else{
-
+          ervar <- "R2"
+          if(point){
+            ervar <- "P3"
+          }
           dht.res <- dht(model, region.table, sample.table,
-                         options=list(#varflag=0,group=TRUE,
-                                    group=dht.group,
-                                    convert.units=convert.units), se=TRUE)
+                         options=list(#varflag=0,
+                                      group         = dht.group,
+                                      ervar         = ervar,
+                                      convert.units = convert.units), se=TRUE)
         }
       }else{
         message("No obs.table supplied nor does data have Region.Label and Sample.Label columns, only estimating detection function.\n")

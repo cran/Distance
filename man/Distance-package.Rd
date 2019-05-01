@@ -16,6 +16,14 @@ Further information on distance sampling methods and example code is available a
 For help with distance sampling and this package, there is a Google Group \url{https://groups.google.com/forum/#!forum/distance-sampling}.
 }
 \references{
+\strong{Key References:}
+
+Miller D.L., E. Rexstad, L. Thomas, L. Marshall and J.L. Laake. 2019.
+  Distance Sampling in R. Journal of Statistical Software, 89(1), 1-28. 
+  \url{http://doi.org/10.18637/jss.v089.i01}.
+
+\strong{Background References:}
+
 Laake, J.L. and D.L. Borchers. 2004. Methods for incomplete
   detection at distance zero. In: Advanced Distance Sampling, eds. S.T.
   Buckland, D.R.Anderson, K.P. Burnham, J.L. Laake, D.L. Borchers, and L.

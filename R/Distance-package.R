@@ -13,7 +13,17 @@
 #' @aliases Distance-package Distance
 #' @docType package
 #' @author David L. Miller <dave@@ninepointeightone.net>
-#' @references Laake, J.L. and D.L. Borchers. 2004. Methods for incomplete
+#' @references 
+#' 
+#' \strong{Key References:}
+#' 
+#' Miller D.L., E. Rexstad, L. Thomas, L. Marshall and J.L. Laake. 2019.
+#'   Distance Sampling in R. Journal of Statistical Software, 89(1), 1-28. 
+#'   \url{http://doi.org/10.18637/jss.v089.i01}.
+#' 
+#' \strong{Background References:}
+#' 
+#' Laake, J.L. and D.L. Borchers. 2004. Methods for incomplete
 #'   detection at distance zero. In: Advanced Distance Sampling, eds. S.T.
 #'   Buckland, D.R.Anderson, K.P. Burnham, J.L. Laake, D.L. Borchers, and L.
 #'   Thomas. Oxford University Press.
@@ -40,7 +50,7 @@ NULL
 #'
 #' @name minke
 #' @keywords datasets
-#' @source Shipped with the DISTANCE Windows application.
+#' @source Shipped with the Distance for Windows.
 #' @docType data
 #' @format \code{data.frame} with 99 observations of 5 variables:
 #' \tabular{ll}{\code{Region.Label} \tab stratum label (\code{"North"} or \code{"South"}) \cr
