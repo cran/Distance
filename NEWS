@@ -1,3 +1,10 @@
+Distance version 1.0.0
+  * call now saved in the model object as $call
+  * Added lots of example data sets
+  * new abundance estimation via dht2! Handles more complex situations.
+  * bootstrap variance estimation via bootdht
+  * for more examples see http://examples.distancesampling.org
+
 Distance version 0.9.8
   * Includes reference and citation for paper on 'Distance Sampling in R'.
   * AIC now works for multiple models at once (as it does for other model classes) thanks to Tiago Marques and Len Thomas for this suggestion.

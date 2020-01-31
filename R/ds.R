@@ -49,8 +49,10 @@
 #' @section Details:
 #' If abundance estimates are required then the \code{data.frame}s \code{region.table} and \code{sample.table} must be supplied. If \code{data} does not contain the columns \code{Region.Label} and \code{Sample.Label} then the \code{data.frame} \code{obs.table} must also be supplied. Note that stratification only applies to abundance estimates and not at the detection function level.
 #'
+#' Examples of distance sampling analyses are available at \url{http://examples.distancesampling.org/}.
+#'
 #' @section Clusters/groups:
-#'  Note that if the data contains a column named \code{size} and \code{region.table}, \code{sample.table} and \code{obs.table} are supplied, cluster size will be estimated and density/abundance will be based on a clustered analysis of the data. Setting this column to be \code{NULL} will perform a non-clustered analysis (for example if "\code{size}" means something else in your dataset).
+#'  Note that if the data contains a column named \code{size}, cluster size will be estimated and density/abundance will be based on a clustered analysis of the data. Setting this column to be \code{NULL} will perform a non-clustered analysis (for example if "\code{size}" means something else in your dataset).
 #'
 #' @section Truncation:
 #' The right truncation point is by default set to be largest observed distance or bin end point. This is a default will not be appropriate for all data and can often be the cause of model convergence failures. It is recommended that one plots a histogram of the observed distances prior to model fitting so as to get a feel for an appropriate truncation distance. (Similar arguments go for left truncation, if appropriate). Buckland et al (2001) provide guidelines on truncation.
@@ -176,6 +178,9 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
              region.table=NULL, sample.table=NULL, obs.table=NULL,
              convert.units=1, method="nlminb", quiet=FALSE, debug.level=0,
              initial.values=NULL, max.adjustments=5){
+
+  # capture the call
+  this_call <- match.call(expand.dots = FALSE)
 
   # this routine just creates a call to mrds, it's not very exciting
   # or fancy, it does do a lot of error checking though
@@ -345,6 +350,8 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
         # this is according to p. 47 of IDS.
         if(adjustment=="poly"){
           order <- 1:order
+        }else if(adjustment=="cos" & key=="unif"){
+          order <- order
         }else{
           order <- 2:order
         }
@@ -594,6 +601,10 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
   ## Now calculate abundance/density using dht()
   if(!is.null(region.table) & !is.null(sample.table)){
 
+    ervar <- "R2"
+    if(point){
+      ervar <- "P3"
+    }
     # if obs.table is not supplied, then data must have the Region.Label and
     # Sample.Label columns
     if(is.null(obs.table)){
@@ -603,10 +614,6 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
           message("Some variance-covariance matrix elements were NA, possible numerical problems; only estimating detection function.\n")
           dht.res <- NULL
         }else{
-          ervar <- "R2"
-          if(point){
-            ervar <- "P3"
-          }
           dht.res <- dht(model, region.table, sample.table,
                          options=list(#varflag=0,
                                       group         = dht.group,
@@ -632,8 +639,9 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
       }else{
         dht.res <- dht(model, region.table, sample.table, obs.table,
                        options=list(#varflag=0,group=TRUE,
-                                    group=dht.group,
-                                    convert.units=convert.units), se=TRUE)
+                                    group         = dht.group,
+                                    ervar         = ervar,
+                                    convert.units = convert.units), se=TRUE)
       }
     }
   }else{
@@ -647,8 +655,9 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
   }
 
   # construct return object
-  ret.obj <- list(ddf = model,
-                dht = dht.res)
+  ret.obj <- list(ddf  = model,
+                  dht  = dht.res,
+                  call = this_call)
 
   # give it some class
   class(ret.obj) <- "dsmodel"

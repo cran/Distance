@@ -4,16 +4,29 @@
 \alias{ds}
 \title{Fit detection functions and calculate abundance from line or point transect data}
 \usage{
-ds(data, truncation = ifelse(is.null(cutpoints),
-  ifelse(is.null(data$distend), max(data$distance), max(data$distend)),
-  max(cutpoints)), transect = c("line", "point"), formula = ~1,
-  key = c("hn", "hr", "unif"), adjustment = c("cos", "herm", "poly"),
-  order = NULL, scale = c("width", "scale"), cutpoints = NULL,
-  dht.group = FALSE, monotonicity = ifelse(formula == ~1, "strict",
-  "none"), region.table = NULL, sample.table = NULL,
-  obs.table = NULL, convert.units = 1, method = "nlminb",
-  quiet = FALSE, debug.level = 0, initial.values = NULL,
-  max.adjustments = 5)
+ds(
+  data,
+  truncation = ifelse(is.null(cutpoints), ifelse(is.null(data$distend),
+    max(data$distance), max(data$distend)), max(cutpoints)),
+  transect = c("line", "point"),
+  formula = ~1,
+  key = c("hn", "hr", "unif"),
+  adjustment = c("cos", "herm", "poly"),
+  order = NULL,
+  scale = c("width", "scale"),
+  cutpoints = NULL,
+  dht.group = FALSE,
+  monotonicity = ifelse(formula == ~1, "strict", "none"),
+  region.table = NULL,
+  sample.table = NULL,
+  obs.table = NULL,
+  convert.units = 1,
+  method = "nlminb",
+  quiet = FALSE,
+  debug.level = 0,
+  initial.values = NULL,
+  max.adjustments = 5
+)
 }
 \arguments{
 \item{data}{a \code{data.frame} containing at least a column called
@@ -87,11 +100,13 @@ This function fits detection functions to line or point transect data and then (
 \section{Details}{
 
 If abundance estimates are required then the \code{data.frame}s \code{region.table} and \code{sample.table} must be supplied. If \code{data} does not contain the columns \code{Region.Label} and \code{Sample.Label} then the \code{data.frame} \code{obs.table} must also be supplied. Note that stratification only applies to abundance estimates and not at the detection function level.
+
+Examples of distance sampling analyses are available at \url{http://examples.distancesampling.org/}.
 }
 
 \section{Clusters/groups}{
 
- Note that if the data contains a column named \code{size} and \code{region.table}, \code{sample.table} and \code{obs.table} are supplied, cluster size will be estimated and density/abundance will be based on a clustered analysis of the data. Setting this column to be \code{NULL} will perform a non-clustered analysis (for example if "\code{size}" means something else in your dataset).
+ Note that if the data contains a column named \code{size}, cluster size will be estimated and density/abundance will be based on a clustered analysis of the data. Setting this column to be \code{NULL} will perform a non-clustered analysis (for example if "\code{size}" means something else in your dataset).
 }
 
 \section{Truncation}{
