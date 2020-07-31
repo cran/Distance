@@ -18,7 +18,8 @@ dht2(
   ci_width = 0.95,
   innes = FALSE,
   stratification = "geographical",
-  total_area = NULL
+  total_area = NULL,
+  binomial_var = FALSE
 )
 }
 \arguments{
@@ -30,9 +31,9 @@ dht2(
 
 \item{geo_strat}{\code{data.frame} with information about any geographical stratification. See "Data" below.}
 
-\item{flatfile}{data in the flatfile format, see \code{\link[Distance]{flatfile}}}
+\item{flatfile}{data in the flatfile format, see \code{\link[Distance]{flatfile}}.}
 
-\item{strat_formula}{a formula giving the stratification structure (see "Stratification" below)}
+\item{strat_formula}{a formula giving the stratification structure (see "Stratification" below). Currently only one level of stratification is supported.}
 
 \item{convert_units}{conversion factor between units for the distances, effort and area. See "Units" below.}
 
@@ -40,7 +41,7 @@ dht2(
 
 \item{multipliers}{\code{list} of \code{data.frame}s. See "Multipliers" below.}
 
-\item{sample_fraction}{what proportion of the transects was covered (e.g., 0.5 for one-sided line transects)}
+\item{sample_fraction}{what proportion of the transects was covered (e.g., 0.5 for one-sided line transects).}
 
 \item{ci_width}{for use with confidence interval calculation (defined as 1-alpha, so the default 95 will give a 95\% confidence interval).}
 
@@ -49,6 +50,8 @@ dht2(
 \item{stratification}{what do strata represent, see "Stratification" below.}
 
 \item{total_area}{for options \code{stratification="effort_sum"} and \code{stratification="replicate"} the area to use as the total for combined, weighted final estimates.}
+
+\item{binomial_var}{if we wish to estimate abundance for the covered area only (i.e., study area = surveyed area) then this must be set to be \code{TRUE} and use the binomial variance estimator of Borchers et al. (1998). This is only valid when objects are not clustered. (This situation is rare.)}
 }
 \value{
 a \code{data.frame} with estimates and attributes containing additional information
@@ -78,13 +81,18 @@ The \code{multipliers} argument is a \code{list}, with 2 possible elements (\cod
 
 \section{Stratification}{
 
-There are four stratification options:
+The \code{strat_formula} argument is used to specify a column to use to stratify the results, using the form \code{~column.name} where \code{column.name} is the column name you wish to use. 
+
+The \code{stratification} argument is used to specify which of four types of stratification are intended:
 \describe{
- \item{geographical}{if each stratum represents a different geographical areas and you want the total over all the areas}
- \item{effort_sum}{if your strata are in fact from replicate surveys (perhaps using different designs) but you don't have many replicates and/or want an estimate of "average variance".}
- \item{replicate}{if you have replicate surveys but have many of them, this calculates the average abundance and the variance between those many surveys (think of a population of surveys)}
- \item{object}{if the stratification is really about the type of object observed, for example sex, species or life stage and what you want is the total number of individuals across all the classes of objects. For example, if you have stratified by sex and have males and females, but also want a total number of animals, you should use this option.}
+ \item{\code{"geographical"}}{if each stratum represents a different geographical areas and you want the total over all the areas}
+ \item{\code{"effort_sum"}}{if your strata are in fact from replicate surveys (perhaps using different designs) but you don't have many replicates and/or want an estimate of "average variance".}
+ \item{\code{"replicate"}}{if you have replicate surveys but have many of them, this calculates the average abundance and the variance between those many surveys (think of a population of surveys)}
+ \item{\code{"object"}}{if the stratification is really about the type of object observed, for example sex, species or life stage and what you want is the total number of individuals across all the classes of objects. For example, if you have stratified by sex and have males and females, but also want a total number of animals, you should use this option.}
 }
+
+
+A simple example of using \code{stratification="geographical"} is given below. Further examples can be found at \url{http://examples.distancesampling.org/} (see, e.g., the deer pellet survey).
 }
 
 \section{Variance}{
@@ -103,12 +111,33 @@ Variance in the estimated abundance comes from multiple sources. Depending on th
 It is often the case that distances are recorded in one convenient set of units, whereas the study area and effort are recorded in some other units. To ensure that the results from this function are in the expected units, we use the \code{convert_units} argument to supply a single number to convert the units of the covered area to those of the study/stratification area (results are always returned in the units of the study area). For line transects, the covered area is calculated as \code{2 * width * length} where \code{width} is the effective (half)width of the transect (often referred to as w in the literature) and \code{length} is the line length (referred to as L). If \code{width} and \code{length} are measured in kilometres and the study area in square kilometres, then all is fine and \code{convert_units} is 1 (and can be ignored). If, for example, line length and distances were measured in metres, we instead need to convert this to be kilometres, by dividing by 1000 for each of distance and length, hence \code{convert_units=1e-6}. For point transects, this is slightly easier as we only have the radius and study area to consider, so the conversion is just such that the units of the truncation radius are the square root of the study area units.
 }
 
+\examples{
+\dontrun{
+# example of simple geographical stratification
+# minke whale data, with 2 strata: North and South
+data(minke)
+# first fitting the detection function
+minke_df <- ds(minke, truncation=1.5, adjustment=NULL)
+# now estimate abundance using dht2
+# stratum labels are in the Region.Label column
+minke_dht2 <- dht2(minke_df, flatfile=minke, stratification="geographical",
+                   strat_formula=~Region.Label)
+# could compare this to minke_df$dht and see the same results
+minke_dht2
+# can alternatively report density
+print(minke_dht2, report="density")
+}
+}
 \references{
+Borchers, D.L., S.T. Buckland, P.W. Goedhart, E.D. Clarke, and S.L. Hedley.
+  1998. Horvitz-Thompson estimators for double-platform line transect
+  surveys. \emph{Biometrics} 54: 1221-1237.
+
 Borchers, D.L., S.T. Buckland, and W. Zucchini. 2002 \emph{Estimating Animal Abundance: Closed Populations}. Statistics for Biology and Health. Springer London.
 
 Buckland, S.T., E.A. Rexstad, T.A. Marques, and C.S. Oedekoven. 2015 \emph{Distance Sampling: Methods and Applications}. Methods in Statistical Ecology. Springer International Publishing.
 
 Buckland, S.T., D.R. Anderson, K. Burnham, J.L. Laake, D.L. Borchers, and L. Thomas. 2001 \emph{Introduction to Distance Sampling: Estimating Abundance of Biological Populations}. Oxford University Press.
 
-Innes, S., M. P. Heide-Jorgensen, J.L. Laake, K.L. Laidre, H.J. Cleator, P. Richard, and R.E.A. Stewart. 2002 Surveys of belugas and narwhals in the Canadian high arctic in 1996. \emph{NAMMCO Scientific Publications} \bold{4}, 169–-190.
+Innes, S., M. P. Heide-Jorgensen, J.L. Laake, K.L. Laidre, H.J. Cleator, P. Richard, and R.E.A. Stewart. 2002 Surveys of belugas and narwhals in the Canadian high arctic in 1996. \emph{NAMMCO Scientific Publications} 4, 169-190.
 }

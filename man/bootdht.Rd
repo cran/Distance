@@ -13,7 +13,8 @@ bootdht(
   nboot = 100,
   summary_fun = bootdht_Nhat_summarize,
   convert.units = 1,
-  select_adjustments = FALSE
+  select_adjustments = FALSE,
+  sample_fraction = 1
 )
 }
 \arguments{
@@ -31,9 +32,11 @@ bootdht(
 
 \item{summary_fun}{function that is used to obtain summary statistics from the bootstrap, see Summary Functions below. By default \code{\link{bootdht_Nhat_summarize}} is used, which just extracts abundance estimates.}
 
-\item{convert.units}{conversion between units for abundance estimation, see "Units", below. (Defaults to 1, implying all of the units are "correct" already.)}
+\item{convert.units}{conversion between units for abundance estimation, see "Units", below. (Defaults to 1, implying all of the units are "correct" already.) This takes precedence over any unit conversion stored in \code{model}.}
 
-\item{select_adjustments}{select the number of adjustments in each bootstrap, when \code{FALSE} the exact detection function specified in \code{model} is fitted to each replicate. Note that for this to work \code{model} must have been fitted with \code{adjustment!=NULL}.}
+\item{select_adjustments}{select the number of adjustments in each bootstrap, when \code{FALSE} the exact detection function specified in \code{model} is fitted to each replicate. Setting this option to \code{TRUE} can significantly increase the runtime for the bootstrap. Note that for this to work \code{model} must have been fitted with \code{adjustment!=NULL}.}
+
+\item{sample_fraction}{what proportion of the transects was covered (e.g., 0.5 for one-sided line transects).}
 }
 \description{
 Performs a bootstrap for simple distance sampling models using the same data structures as \code{\link[mrds]{dht}}.
@@ -49,7 +52,6 @@ Model selection can be performed on a per-replicate basis within the bootstrap. 
 \enumerate{
    \item when \code{select_adjustments} is \code{TRUE} then adjustment terms are selected by AIC within each bootstrap replicate (provided that \code{model} had the \code{order} and \code{adjustment} options set to non-\code{NULL}.
    \item if \code{model} is a list of fitted detection functions, each of these is fitted to each replicate and results generated from the one with the lowest AIC.
-   \item if both 
    \item when \code{select_adjustments} is \code{TRUE} and \code{model} is a list of fitted detection functions, each model fitted to each replicate and number of adjustments is selected via AIC.
 }
 The last of these options can be very time consuming!
