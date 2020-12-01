@@ -5,16 +5,20 @@
 \alias{add_df_covar_line}
 \title{Add covariate levels detection function plots}
 \arguments{
-\item{ddf}{a fitted detection function object}
+\item{ddf}{a fitted detection function object.}
 
-\item{data}{a \code{data.frame} with the covariate combination you want to plot}
+\item{data}{a \code{data.frame} with the covariate combination you want to plot.}
 
-\item{\dots}{extra arguments to give to \code{\link{line}} (\code{lty}, \code{lwd}, \code{col})}
+\item{\dots}{extra arguments to give to \code{\link{line}} (\code{lty}, \code{lwd}, \code{col}).}
 
-\item{ndist}{number of points to evaluate the detection function at}
+\item{ndist}{number of distances at which to evaluate the detection function.}
+
+\item{pdf}{should the line be drawn on the probability density scale; ignored for line transects}
+
+\item{breaks}{required to ensure that PDF lines are the right size, should match what is supplied to original \code{plot} command. Defaults to "Sturges" breaks, as in \code{\link{hist}}. Only used if \code{pdf=TRUE}}
 }
 \value{
-invisibly, the values of detectability over the truncation range
+invisibly, the values of detectability over the truncation range.
 }
 \description{
 Add a line or lines to a plot of the detection function which correspond to a a given covariate combination. These can be particularly useful when there is a small number of factor levels or if quantiles of a continuous covariate are specified.
@@ -44,6 +48,12 @@ add_df_covar_line(result, data.frame(Region.Label="North"), lty=3)
 # add a legend
 legend(1.5, 1, c("Average", "South", "North"), lty=1:3)
 
+# point transect example
+data(amakihi)
+result <- ds(amakihi, truncation=150, transect="point", formula=~OBs)
+plot(result, showpoints=FALSE, pdf=TRUE)
+add_df_covar_line(result,
+                  data.frame(OBs=na.omit(unique(amakihi$OBs))), pdf=TRUE)
 }
 }
 \author{
