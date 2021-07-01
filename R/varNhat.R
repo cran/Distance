@@ -35,7 +35,8 @@ varNhat <- function(data, model){
     model$par <- par
 
     # calculate Nc
-    data$p <- predict(model, newdata=as.data.frame(data), integrate=TRUE, compute=TRUE)$fitted
+    data$p <- predict(model, newdata=as.data.frame(data), integrate=TRUE,
+                      compute=TRUE)$fitted
     data$Nc <- (data$size/data$p)/data$rate
 
     # calculate Nhat per region
@@ -48,6 +49,9 @@ varNhat <- function(data, model){
 
   # get variance-covariance matrix for the detection function
   vcov <- solvecov(model$hessian)$inv
+
+  # remove the rows where there were no observations
+  data <- data[!is.na(data$object), ]
 
   # calculate variance
   dm <- DeltaMethod(model$par, dhtd, vcov, sqrt(.Machine$double.eps),

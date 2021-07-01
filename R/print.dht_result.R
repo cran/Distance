@@ -1,11 +1,27 @@
 #' Print abundance estimates
 #' @export
-#' @param x object of class \code{dht_result}
+#' @param x object of class `dht_result`
 #' @param groups should abundance/density of groups be produced?
-#' @param report should \code{"abundance"}, \code{"density"} or \code{"both"} be reported?
+#' @param report should `"abundance"`, `"density"` or `"both"` be reported?
 #' @param \dots unused
 print.dht_result <- function(x, report="abundance", groups=FALSE, ...){
 
+  # general information
+  resulttype <- ifelse(report=="both", "abundance and density", report)
+  substr(resulttype, 1, 1) <- toupper(substr(resulttype, 1, 1))
+  cat(resulttype, "estimates from distance sampling\n")
+  cat("Stratification :", attr(x, "stratification"), "\n")
+  cat("Variance       :", paste0(attr(x, "ER_var")[1], ","),
+      ifelse(attr(x, "ER_var")[3], "binomial",
+             ifelse(attr(x, "ER_var")[2], "N/L", "n/L")), "\n")
+  cat("Multipliers    :", ifelse(is.null(attr(x, "multipliers")),
+                                 "none",
+                                 paste(attr(x, "multipliers"), collapse=", ")),
+      "\n")
+  cat("Sample fraction :" , ifelse(attr(x, "sample_fraction")>1,
+                                  "multiple", attr(x, "sample_fraction")), "\n")
+
+  cat("\n\n")
   if(groups & !is.null(attr(x, "grouped"))){
     cat("Groups:\n\n")
     print(attr(x, "grouped"), report=report)
@@ -66,7 +82,8 @@ print.dht_result <- function(x, report="abundance", groups=FALSE, ...){
     object$se <- object$Abundance_se
     ab <- object[, cols]
 
-    ab[,c("Estimate", "LCI", "UCI")] <- round(ab[,c("Estimate", "LCI", "UCI")], round)
+    ab[,c("Estimate", "LCI", "UCI")] <- round(ab[,c("Estimate", "LCI", "UCI")],
+                                              round)
     ab[,c("se", "cv", "df")] <- round(ab[,c("se", "cv", "df")], 3)
     print(ab, row.names=FALSE)
     cat("\n")
@@ -83,7 +100,8 @@ print.dht_result <- function(x, report="abundance", groups=FALSE, ...){
     dobject$group_se <- sqrt(dobject$group_var)
     ab <- dobject[, cols]
 
-    ab[,c("Estimate", "LCI", "UCI")] <- round(ab[,c("Estimate", "LCI", "UCI")], round)
+    ab[,c("Estimate", "LCI", "UCI")] <- round(ab[,c("Estimate", "LCI", "UCI")],
+                                              round)
     ab[,c("se", "cv", "df")] <- round(ab[,c("se", "cv", "df")], 3)
     print(ab, row.names=FALSE)
     cat("\n")

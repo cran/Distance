@@ -24,7 +24,9 @@ ER_var_f <- function(erdat, innes, er_est, binomial_var=FALSE){
 
     # sort the data if we use O2/O3 estimators
     if(er_est %in% c("O2", "O3")){
-      warning(paste("Using the", er_est, "encounter rate variance estimator, assuming that sorting on Sample.Label is meaningful"))
+      warning(paste("Using the", er_est,
+                    "encounter rate variance estimator, assuming that",
+                    "sorting on Sample.Label is meaningful"))
       if(!is.numeric(erdat$Sample.Label)){
         warning("Additionally, Sample.Label is not numeric, this may cause additional issues")
       }
@@ -62,9 +64,7 @@ ER_var_f <- function(erdat, innes, er_est, binomial_var=FALSE){
         mutate(ER_var_Nhat = ((.data$Area/sum(.data$Covered_area))*
                               .data$Nc*sum(.data$Effort))^2 *
                               .data$ER_var/
-                              sum(.data$transect_n_observations)^2 +
-                              ((.data$Area/sum(.data$Covered_area))*.data$Nc)^2*
-                              .data$group_var/.data$group_mean^2) %>%
+                              sum(.data$transect_n_observations)^2) %>%
         mutate(ER_var_Nhat = ifelse(length(unique(.data$Sample.Label))>1,
                                     .data$ER_var_Nhat,
                                     0))
