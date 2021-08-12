@@ -76,8 +76,9 @@ only (i.e., study area = surveyed area) then this must be set to be
 is rare.)}
 }
 \value{
-a \code{data.frame} with estimates and attributes containing
-additional information
+a \code{data.frame} (of class \code{dht_result} for pretty printing) with
+estimates and attributes containing additional information, see "Outputs"
+for information on column names.
 }
 \description{
 Once a detection function is fitted to data, this function can be used to
@@ -132,10 +133,10 @@ refer to these conversions between "number of cues" and "number of animals"
 as "multipliers".
 
 The \code{multipliers} argument is a \code{list}, with 2 possible elements (\code{creation}
-and \code{decay}) Each element of which is a \code{data.frame} and must have at least a
-column named \code{rate}, which abundance estimates will be divided by (the term
-"multiplier" is a misnomer, but kept for compatibility with Distance for
-Windows). Additional columns can be added to give the standard error and
+and \code{decay}). Each element of which is a \code{data.frame} and must have at least
+a column named \code{rate}, which abundance estimates will be divided by (the
+term "multiplier" is a misnomer, but kept for compatibility with Distance
+for Windows). Additional columns can be added to give the standard error and
 degrees of freedom for the rate if known as \code{SE} and \code{df}, respectively. You
 can use a multirow \code{data.frame} to have different rates for different
 geographical areas (for example). In this case the rows need to have a
@@ -221,6 +222,45 @@ of distance and length, hence \code{convert_units=1e-6}. For point transects,
 this is slightly easier as we only have the radius and study area to
 consider, so the conversion is just such that the units of the truncation
 radius are the square root of the study area units.
+}
+
+\section{Output}{
+
+On printing the output from call to \code{dht2}, three tables are produced. Below is a guide to the output columns names, per table.
+\itemize{
+\item Summary statistics table
+\itemize{
+\item \code{Region.Label} Stratum name (this first column name depends on the \code{formula} supplied)
+\item \code{Area} Size of stratum
+\item \code{CoveredArea} Surveyed area in stratum (2 x w x L)
+\item \code{Effort} Transect length or number of point visits per stratum
+\item \code{n} Number of detections
+\item \code{k} Number of replicate transects
+\item \code{ER} Encounter rate
+\item \code{se.ER} Standard error of encounter rate
+\item \code{cv.ER} Coefficient of variation of encounter rate
+}
+\item Abundance or density estimates table:
+\itemize{
+\item \code{Region.Label} As above
+\item \code{Estimate} Point estimate of abundance or density
+\item \code{se} Standard error
+\item \code{cv} Coefficient of variation
+\item \code{LCI} Lower confidence bound
+\item \code{UCI} Upper confidence bound
+\item \code{df} Degrees of freedom used for confidence interval computation
+}
+\item Components percentage of variance:
+\itemize{
+\item \code{Region.Label} As above
+\item \code{Detection} Percent of variance in abundance/density associated with
+detection function uncertainty
+\item \code{ER} Percent of variance in abundance/density associated with
+variability in encounter rate
+\item \code{Multipliers} Percent of variance in abundance/density associated with
+uncertainty in multipliers
+}
+}
 }
 
 \examples{

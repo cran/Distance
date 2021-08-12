@@ -41,8 +41,9 @@
 #' `TRUE` and use the binomial variance estimator of Borchers et al.
 #' (1998). This is only valid when objects are not clustered. (This situation
 #' is rare.)
-#' @return a `data.frame` with estimates and attributes containing
-#' additional information
+#' @return a `data.frame` (of class `dht_result` for pretty printing) with
+#' estimates and attributes containing additional information, see "Outputs"
+#' for information on column names.
 #'
 #' @export
 #' @importFrom rlang .data
@@ -90,10 +91,10 @@
 #' as "multipliers".
 #'
 #' The `multipliers` argument is a `list`, with 2 possible elements (`creation`
-#' and `decay`) Each element of which is a `data.frame` and must have at least a
-#' column named `rate`, which abundance estimates will be divided by (the term
-#' "multiplier" is a misnomer, but kept for compatibility with Distance for
-#' Windows). Additional columns can be added to give the standard error and
+#' and `decay`). Each element of which is a `data.frame` and must have at least
+#' a column named `rate`, which abundance estimates will be divided by (the
+#' term "multiplier" is a misnomer, but kept for compatibility with Distance
+#' for Windows). Additional columns can be added to give the standard error and
 #' degrees of freedom for the rate if known as `SE` and `df`, respectively. You
 #' can use a multirow `data.frame` to have different rates for different
 #' geographical areas (for example). In this case the rows need to have a
@@ -169,6 +170,36 @@
 #' this is slightly easier as we only have the radius and study area to
 #' consider, so the conversion is just such that the units of the truncation
 #' radius are the square root of the study area units.
+#'
+#' @section Output:
+#' On printing the output from call to `dht2`, three tables are produced. Below is a guide to the output columns names, per table.
+#'
+#' - Summary statistics table
+#'   - `Region.Label` Stratum name (this first column name depends on the `formula` supplied)
+#'   - `Area` Size of stratum
+#'   - `CoveredArea` Surveyed area in stratum (2 x w x L)
+#'   - `Effort` Transect length or number of point visits per stratum
+#'   - `n` Number of detections
+#'   - `k` Number of replicate transects
+#'   - `ER` Encounter rate
+#'   - `se.ER` Standard error of encounter rate
+#'   - `cv.ER` Coefficient of variation of encounter rate
+#' - Abundance or density estimates table:
+#'   - `Region.Label` As above
+#'   - `Estimate` Point estimate of abundance or density
+#'   - `se` Standard error
+#'   - `cv` Coefficient of variation
+#'   - `LCI` Lower confidence bound
+#'   - `UCI` Upper confidence bound
+#'   - `df` Degrees of freedom used for confidence interval computation
+#' - Components percentage of variance:
+#'   - `Region.Label` As above
+#'   - `Detection` Percent of variance in abundance/density associated with
+#'   detection function uncertainty
+#'   - `ER` Percent of variance in abundance/density associated with
+#'   variability in encounter rate
+#'   - `Multipliers` Percent of variance in abundance/density associated with
+#'   uncertainty in multipliers
 #'
 #' @references
 #'
@@ -461,6 +492,11 @@ dht2 <- function(ddf, observations=NULL, transects=NULL, geo_strat=NULL,
 
   }else{
     stop("Need to supply either observations, transects and geo_strat OR flatfile")
+  }
+
+  # stop if any of the transects has zero or negative effort
+  if(any(is.na(bigdat[["Effort"]])) || any(bigdat[["Effort"]] <= 0)){
+    stop("Some transects have <=0 or NA Effort")
   }
 
   # handle multipliers
