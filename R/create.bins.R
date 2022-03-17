@@ -1,6 +1,6 @@
 #' Create bins from a set of binned distances and a set of cutpoints.
 #'
-#' This is an internal routine and shouldn't be necessary in normal analyses.
+#' `create.bins` is now deprecated, please use [`create_bins`][create_bins]
 #'
 #' @param data `data.frame` with at least the column `distance`.
 #' @param cutpoints vector of cutpoints for the bins
@@ -10,59 +10,6 @@
 #'
 #' @author David L. Miller
 #' @export
-#' @examples
-#' \dontrun{
-#' library(Distance)
-#' data(minke)
-#'
-#' # put the minke data into bins 0-1, 1-2, 2-3 km
-#' minke_cuts <- create.bins(minke[!is.na(minke$distance),], c(0,1,2,3))
-#' }
 create.bins <- function(data, cutpoints){
-
-  # lazy typist
-  cp <- cutpoints
-
-  # remove distances outside bins
-  in.cp.ind <- data$distance>=cp[1] & data$distance<=cp[length(cp)]
-  if(!all(in.cp.ind)){
-    warning("Some distances were outside bins and have been removed.")
-  }
-  data <- data[in.cp.ind, , drop=FALSE]
-
-  # pull out the distances (removing the NAs for now)
-  na.ind <- is.na(data$distance)
-  d <- data$distance[!na.ind]
-
-  # setup columns
-  distbegin <- rep(NA,length(d))
-  distend <- rep(NA,length(d))
-
-  for(i in 1:(length(cp)-1)){
-    # which elements of d lie between cutpoints i and i+1
-    ind <- which(d>=cp[i] & d<cp[i+1])
-
-    distbegin[ind] <- cp[i]
-    distend[ind]   <- cp[i+1]
-  }
-  # last cutpoint, include those observations AT the truncation point
-  ind <- which(d>=cp[i] & d<=cp[i+1])
-
-  distbegin[ind] <- cp[i]
-  distend[ind]   <- cp[i+1]
-
-
-  # handle NA distances, that we need to preserve
-  distbegin.na <- rep(NA, length(data$distance))
-  distend.na <- rep(NA, length(data$distance))
-  distbegin.na[!na.ind] <- distbegin
-  distend.na[!na.ind] <- distend
-
-  # put all that together and make a data.frame
-  data <- cbind(data,
-                distbegin=distbegin.na,
-                distend=distend.na)
-  data <- data.frame(data)
-
-  return(data)
+  stop("create.bins is deprecated, please use create_bins")
 }
