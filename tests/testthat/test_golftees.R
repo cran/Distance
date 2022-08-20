@@ -8,7 +8,7 @@ data(golftees)
 
 # data fiddling
 gtees <- golftees[golftees$observer==1 & golftees$detected==1, ]
-gtees$size <- 1
+#gtees$size <- 1
 dat <- unflatten(gtees)
 
 trunc <- 4
@@ -48,7 +48,7 @@ make_old_abund_individual <- function(object){
 
 context("golftees")
 
-test_that("ER variance",{
+test_that("ER variance", {
 
   # output using old dht
   df <- ds(gtees, truncation=trunc, key="hn", adjustment=NULL)
@@ -76,3 +76,17 @@ test_that("ER variance",{
 #               tolerance=tol, check.attributes=FALSE)
 
 })
+
+
+test_that("Same results as Distance", {
+  gtees$sex <- as.factor(gtees$sex)
+  gtees$sex <- relevel(gtees$sex, ref="1")
+  df <- ds(gtees, truncation=trunc, key="hn", adjustment=NULL, formula=~sex)
+
+  fs_st1 <- expect_warning(dht2(df$ddf, dat$obs.table, dat$sample.table,
+                                dat$region.table, strat_formula=~Region.Label,
+                                innes=FALSE),
+                           "One or more strata have only one transect, cannot calculate empirical encounter rate variance")
+})
+
+

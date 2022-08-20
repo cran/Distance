@@ -121,7 +121,11 @@
 #' and `sample_table` must be supplied. If `data` does not contain the columns
 #' `Region.Label` and `Sample.Label` then the `data.frame` `obs_table` must
 #' also be supplied. Note that stratification only applies to abundance
-#' estimates and not at the detection function level.
+#' estimates and not at the detection function level. Density and abundance
+#' estimates, and corresponding estimates of variance and confidence intervals,
+#' are calculated using the methods described in Buckland et al. (2001)
+#' sections 3.6.1 and 3.7.1 (further details can be found in the documentation
+#' for [`dht`][mrds::dht]).
 #'
 #' For more advanced abundance/density estimation please see the
 #' [`dht`][mrds::dht] and [`dht2`][dht2] functions.
@@ -235,6 +239,7 @@
 #' @export
 #'
 #' @importFrom stats quantile as.formula
+#' @importFrom methods is
 #' @references
 #' Buckland, S.T., Anderson, D.R., Burnham, K.P., Laake, J.L., Borchers, D.L.,
 #' and Thomas, L. (2001). Distance Sampling. Oxford University Press. Oxford,
@@ -405,10 +410,6 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
                      unif = "uniform"
                     )
 
-  # no uniform key with no adjustments
-  if(is.null(adjustment) & key=="unif"){
-    stop("Can't use uniform key with no adjustments.")
-  }
   # no covariates with uniform
   if((as.formula(formula)!=~1) & key=="unif"){
     stop("Can't use uniform key with covariates.")
@@ -518,11 +519,7 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
   # if we are doing an AIC-based search then, create the indices for the
   # for loop to work along, else just give the length of the order object
   if(aic.search){
-    if(key!="unif"){
-      for.ind <- c(0,seq(along=order))
-    }else{
-      for.ind <- seq(along=order)
-    }
+    for.ind <- c(0, seq(along=order))
     message("Starting AIC adjustment term selection.")
   }else if(!is.null(adjustment)){
     for.ind <- length(order)
@@ -542,7 +539,7 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
     # MCDS model
     }else{
       model.formula <- paste("~mcds(key = \"",key,"\",",
-                                  "formula =~",as.character(formula)[2],sep="")
+                                 "formula =~", as.character(formula)[2], sep="")
     }
 
     # build a message to let the user know what is being fitted
@@ -600,6 +597,14 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
     # tell the user what is being fitted
     message(this.message)
 
+    # turn-off monotonicity if we have a key only model
+    if(i==0){
+      mono.save <- meta.data$mono
+      mono.strict.save <- meta.data$mono.strict
+      meta.data$mono <- FALSE
+      meta.data$mono.strict <- FALSE
+    }
+
     # actually fit a model
     # wrap everything around this so we don't print out a lot of useless
     # stuff...
@@ -610,9 +615,14 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
                                       control=control,
                                       meta.data = meta.data), silent=quiet))
 
+    # turn-off monotonicity if we have a key only model
+    if(i==0){
+      meta.data$mono <- mono.save
+      meta.data$mono.strict <- mono.strict.save
+    }
 
     # if that worked
-    if(any(class(model)!="try-error")){
+    if(!inherits(model, "try-error")){
       if(model$ds$converge==0){
 
         model$name.message <- sub("^Fitting ","",this.message)

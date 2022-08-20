@@ -24,20 +24,24 @@ create_bins <- function(data, cutpoints){
   cp <- cutpoints
 
   # remove distances outside bins
-  in.cp.ind <- data$distance>=cp[1] & data$distance<=cp[length(cp)]
+  in.cp.ind <- is.na(data$distance) |
+                (data$distance>=cp[1] & data$distance<=cp[length(cp)])
   if(!all(in.cp.ind)){
     warning("Some distances were outside bins and have been removed.")
   }
   data <- data[in.cp.ind, , drop=FALSE]
 
   # use cut() to create bins
-  chopped <- as.character(cut(data$distance, breaks=cp, include.lowest=TRUE))
+  chopped <- cut(data$distance, breaks=cp, include.lowest=TRUE, labels = FALSE)
+  
+  distbegin <- cp[1:(length(cp)-1)]
+  distend <- cp[2:length(cp)]
 
   # put all that together and make a data.frame
   data <- cbind(data,
                 # process to get bin beginnings/endings
-                distbegin = as.numeric(sub(".(\\d+\\.*\\d*),.+", "\\1", chopped)),
-                distend = as.numeric(sub(".+,(\\d+\\.*\\d*).", "\\1", chopped)))
+                distbegin = distbegin[chopped],
+                distend = distend[chopped])
   data <- data.frame(data)
 
   return(data)

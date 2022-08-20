@@ -1,6 +1,6 @@
 # function to do a single bootstrap iteration
 bootit <- function(bootdat, models, our_resamples, summary_fun,
-                   convert.units, pb, multipliers_fun, sample_label,
+                   convert_units, pb, multipliers_fun, sample_label,
                    select_adjustments, ...){
 
   # get resampled data
@@ -22,15 +22,15 @@ bootit <- function(bootdat, models, our_resamples, summary_fun,
     }
     # insert the new data into the model
     df_call$data <- bootdat
-    if(!is.null(convert.units)){
-      df_call$convert.units <- convert.units
+    if(!is.null(convert_units)){
+      df_call$convert_units <- convert_units
     }
 
     # fit that and update what's in models
     models[[i]] <- try(suppressMessages(eval(df_call)),
                        silent=TRUE)
 
-    if(any(class(models[[i]]) == "try-error") ||
+    if(inherits(models[[i]], "try-error") ||
        is.null(models[[i]]$dht)){
       # if the model failed, return NA
       aics[i] <- NA
@@ -95,7 +95,7 @@ bootit <- function(bootdat, models, our_resamples, summary_fun,
   }else{
     fit <- models[[which.min(aics)]]
     # handle errors
-    if(any(class(fit) == "try-error") ||
+    if(inherits(fit, "try-error") ||
        any(is.na(fit$ddf$hessian))){
       ret <- NA
       class(ret) <- "bootstrap_failure"

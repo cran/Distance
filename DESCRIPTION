@@ -11,17 +11,17 @@ Description: A simple way of fitting detection functions to distance sampling
     Horvitz-Thompson-like estimator) if survey area information is provided. See
     Miller et al. (2019) <doi:10.18637/jss.v089.i01> for more information on
     methods and <https://examples.distancesampling.org/> for example analyses.
-Version: 1.0.5
+Version: 1.0.6
 URL: https://github.com/DistanceDevelopment/Distance/
 BugReports: https://github.com/DistanceDevelopment/Distance/issues
 Language: en-GB
 Depends: R (>= 3.0), mrds (>= 2.2.1)
-Imports: dplyr, rlang
+Imports: dplyr, methods, rlang
 Suggests: covr, progress, parallel, doParallel, doRNG, foreach,
         activity, testthat
 Encoding: UTF-8
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.1
 NeedsCompilation: no
-Packaged: 2022-03-17 16:56:36 UTC; dill
+Packaged: 2022-08-20 23:17:54 UTC; laura
 Repository: CRAN
-Date/Publication: 2022-03-17 18:20:02 UTC
+Date/Publication: 2022-08-20 23:50:02 UTC

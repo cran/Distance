@@ -103,7 +103,8 @@
 #' @importFrom stats as.formula AIC
 #' @importFrom mrds ddf dht
 #' @seealso [`summary.dht_bootstrap`] for how to summarize the results,
-#' [`bootdht_Nhat_summarize`] for an example summary function.
+#' [`bootdht_Nhat_summarize`] and [`bootdht_Dhat_summarize`] for an examples of
+#' summary functions.
 #' @export
 #' @examples
 #' \dontrun{
@@ -143,20 +144,20 @@ bootdht <- function(model,
   }
 
   # make everything a list...
-  if(!all(class(model)=="list")){
+  if(!inherits(model, "list")){
     models <- list(model)
     # yes, I am a monster
   }else{
     models <- model
   }
 
-  if(missing(convert.units)){
-    convert.units <-  NULL
+  if(missing(convert_units)){
+    convert_units <-  NULL
   }
 
   # only use valid ds models
   for(i in seq_along(models)){
-    if(!all(class(models[[i]])=="dsmodel")){
+    if(!is(models[[i]], "dsmodel")){
       stop("Only models fitted by Distance::ds() may be used")
     }
   }
@@ -197,6 +198,9 @@ bootdht <- function(model,
   possible_resamples <- c(stratum_label, sample_label, obs_label)
   our_resamples <- possible_resamples[c(resample_strata, resample_transects,
                                         resample_obs)]
+
+  # make sure these are characters for resampling
+  dat[, our_resamples] <- lapply(dat[, our_resamples, drop=FALSE], as.character)
 
   # process models
   # this resolves all symbols in the call so arguments can be accessed when
@@ -281,7 +285,7 @@ bootdht <- function(model,
     # work (updates happen in this loop rather than in bootit)
     boot_ests <- foreach::foreach(i=1:nboot, .packages=packages) %dorng2% {
       bootit(dat, models=models, our_resamples=our_resamples,
-             summary_fun=summary_fun, convert.units=convert.units,
+             summary_fun=summary_fun, convert_units=convert_units,
              pb=list(increment=function(pb){invisible()}),
              multipliers_fun=multipliers_fun, sample_label=sample_label,
              select_adjustments=select_adjustments)
@@ -290,7 +294,7 @@ bootdht <- function(model,
   }else{
     boot_ests <- replicate(nboot,
                            bootit(dat, models=models, our_resamples,
-                                  summary_fun, convert.units=convert.units,
+                                  summary_fun, convert_units=convert_units,
                                   pb=pb, multipliers_fun=multipliers_fun,
                                   sample_label=sample_label,
                                   select_adjustments=select_adjustments),
@@ -298,7 +302,7 @@ bootdht <- function(model,
   }
 
   # do some post-processing
-  fail_fun <- function(x) class(x)=="bootstrap_failure"
+  fail_fun <- function(x) inherits(x, "bootstrap_failure")
   # add replicate IDs
   bootids <- seq_len(length(boot_ests))
   # how many failures
