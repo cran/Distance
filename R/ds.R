@@ -333,7 +333,8 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
     this_call$er_var <- this_call$er.var
     er_var <- er.var
     this_call$er.var <- NULL
-    warning(paste0("Argument: er.var is deprecated, check documentation."))
+    warning(paste0("Argument: er.var is deprecated, check documentation."),
+            immediate.=TRUE)
   }
   if("max.adjustments" %in% names(this_call)){
     this_call$max_adjustments <- this_call$max.adjustments
@@ -524,7 +525,7 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
   }else if(!is.null(adjustment)){
     for.ind <- length(order)
   }else{
-    for.ind <- 1
+    for.ind <- 0
   }
 
   # dummy last model
@@ -615,7 +616,7 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
                                       control=control,
                                       meta.data = meta.data), silent=quiet))
 
-    # turn-off monotonicity if we have a key only model
+    # reset monotonicity
     if(i==0){
       meta.data$mono <- mono.save
       meta.data$mono.strict <- mono.strict.save
