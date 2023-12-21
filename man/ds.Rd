@@ -23,7 +23,7 @@ ds(
   sample_table = NULL,
   obs_table = NULL,
   convert_units = 1,
-  er_var = ifelse(transect == "line", "R2", "P3"),
+  er_var = ifelse(transect == "line", "R2", "P2"),
   method = "nlminb",
   quiet = FALSE,
   debug_level = 0,
@@ -73,16 +73,20 @@ used, covariates cannot be included in the model.}
 \code{"herm"} gives Hermite polynomial and \code{"poly"} gives simple polynomial. A
 value of \code{NULL} indicates that no adjustments are to be fitted.}
 
-\item{nadj}{the number of adjustment terms to fit. The default value
-(\code{NULL}) will select via AIC (using a sequential forward selection
-algorithm) up to \code{max.adjustment} adjustments (unless \code{order} is specified).
-A non-negative integer value will cause the specified number of adjustments
-to be fitted. The order of adjustment terms used will depend on the \code{key}
-and \code{adjustment}. For \code{key="unif"}, adjustments of order 1, 2, 3, ... are
-fitted when \code{adjustment = "cos"} and order 2, 4, 6, ... otherwise. For
-\code{key="hn"} or \code{"hr"} adjustments of order 2, 3, 4, ... are fitted when
-\code{adjustment = "cos"} and order 4, 6, 8, ... otherwise. See Buckland et al.
-(2001, p. 47) for details.}
+\item{nadj}{the number of adjustment terms to fit. In the absence of
+covariates in the formula, the default value (\code{NULL}) will select via AIC
+(using a sequential forward selection algorithm) up to \code{max.adjustment}
+adjustments (unless \code{order} is specified). When covariates are present
+in the model formula, the default value of \code{NULL} results in no adjustment
+terms being fitted in the model. A non-negative integer value will cause
+the specified number of adjustments to be fitted. Supplying an integer
+value will allow the use of adjustment terms in addition to specifying
+covariates in the model. The order of adjustment terms used will depend
+on the \code{key}and \code{adjustment}. For \code{key="unif"}, adjustments of order
+1, 2, 3, ... are fitted when \code{adjustment = "cos"} and order 2, 4, 6, ...
+otherwise. For \code{key="hn"} or \code{"hr"} adjustments of order 2, 3, 4, ... are
+fitted when \code{adjustment = "cos"} and order 4, 6, 8, ... otherwise. See
+Buckland et al. (2001, p. 47) for details.}
 
 \item{order}{order of adjustment terms to fit. The default value (\code{NULL})
 results in \code{ds} choosing the orders to use - see \code{nadj}. Otherwise a scalar
@@ -98,11 +102,15 @@ key is uniform only \code{"width"} will be used. The other option is \code{"scal
 the scale parameter of the detection}
 
 \item{cutpoints}{if the data are binned, this vector gives the cutpoints of
-the bins. Ensure that the first element is 0 (or the left truncation
+the bins. Supplying a distance column in your data and specifying cutpoints
+is the recommended approach for all standard binned analyses.
+Ensure that the first element is 0 (or the left truncation
 distance) and the last is the distance to the end of the furthest bin.
-(Default \code{NULL}, no binning.) Note that if \code{data} has columns \code{distbegin}
-and \code{distend} then these will be used as bins if \code{cutpoints} is not
-specified. If both are specified, \code{cutpoints} has precedence.}
+(Default \code{NULL}, no binning.) If you have provided \code{distbegin} and \code{distend}
+columns in your data (note this should only be used when your cutpoints
+are not constant across all your data, e.g. planes flying at differing
+altitudes) then do not specify the cutpoints argument as this will cause
+the \code{distbegin} and \code{distend} columns in your data to be overwritten.}
 
 \item{dht_group}{should density abundance estimates consider all groups to
 be size 1 (abundance of groups) \code{dht_group=TRUE} or should the abundance of
@@ -146,8 +154,9 @@ produced.
 already.)}
 
 \item{er_var}{encounter rate variance estimator to use when abundance
-estimates are required. Defaults to "R2" for line transects and "P3" for
-point transects. See \code{\link{dht2}} for more information and if more
+estimates are required. Defaults to "R2" for line transects and "P2" for
+point transects (>= 1.0.9, earlier versions <= 1.0.8 used the "P3" estimator
+by default for points). See \code{\link{dht2}} for more information and if more
 complex options are required.}
 
 \item{method}{optimization method to use (any method usable by
@@ -161,7 +170,7 @@ Default value \code{FALSE}.}
 of debugging output.}
 
 \item{initial_values}{a \code{list} of named starting values, see
-\code{\link[mrds:mrds-opt]{mrds-opt}}. Only allowed when AIC term selection is not
+\code{\link[mrds:mrds_opt]{mrds_opt}}. Only allowed when AIC term selection is not
 used.}
 
 \item{max_adjustments}{maximum number of adjustments to try (default 5) only
@@ -237,7 +246,7 @@ Examples of distance sampling analyses are available at
 \url{http://examples.distancesampling.org/}.
 
 Hints and tips on fitting (particularly optimisation issues) are on the
-\code{\link[mrds:mrds-opt]{mrds-opt}} manual page.
+\code{\link[mrds:mrds_opt]{mrds_opt}} manual page.
 }
 
 \section{Clusters/groups}{

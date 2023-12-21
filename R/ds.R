@@ -28,16 +28,20 @@
 #' @param adjustment adjustment terms to use; `"cos"` gives cosine (default),
 #' `"herm"` gives Hermite polynomial and `"poly"` gives simple polynomial. A
 #' value of `NULL` indicates that no adjustments are to be fitted.
-#' @param nadj the number of adjustment terms to fit. The default value
-#' (`NULL`) will select via AIC (using a sequential forward selection
-#' algorithm) up to `max.adjustment` adjustments (unless `order` is specified).
-#' A non-negative integer value will cause the specified number of adjustments
-#' to be fitted. The order of adjustment terms used will depend on the `key`
-#' and `adjustment`. For `key="unif"`, adjustments of order 1, 2, 3, ... are
-#' fitted when `adjustment = "cos"` and order 2, 4, 6, ... otherwise. For
-#' `key="hn"` or `"hr"` adjustments of order 2, 3, 4, ... are fitted when
-#' `adjustment = "cos"` and order 4, 6, 8, ... otherwise. See Buckland et al.
-#' (2001, p. 47) for details.
+#' @param nadj the number of adjustment terms to fit. In the absence of 
+#' covariates in the formula, the default value (`NULL`) will select via AIC 
+#' (using a sequential forward selection algorithm) up to `max.adjustment` 
+#' adjustments (unless `order` is specified). When covariates are present 
+#' in the model formula, the default value of `NULL` results in no adjustment 
+#' terms being fitted in the model. A non-negative integer value will cause 
+#' the specified number of adjustments to be fitted. Supplying an integer 
+#' value will allow the use of adjustment terms in addition to specifying 
+#' covariates in the model. The order of adjustment terms used will depend 
+#' on the `key`and `adjustment`. For `key="unif"`, adjustments of order 
+#' 1, 2, 3, ... are fitted when `adjustment = "cos"` and order 2, 4, 6, ... 
+#' otherwise. For `key="hn"` or `"hr"` adjustments of order 2, 3, 4, ... are 
+#' fitted when `adjustment = "cos"` and order 4, 6, 8, ... otherwise. See 
+#' Buckland et al. (2001, p. 47) for details.
 #' @param order order of adjustment terms to fit. The default value (`NULL`)
 #' results in `ds` choosing the orders to use - see `nadj`. Otherwise a scalar
 #' positive integer value can be used to fit a single adjustment term of the
@@ -50,11 +54,15 @@
 #' key is uniform only `"width"` will be used. The other option is `"scale"`:
 #' the scale parameter of the detection
 #' @param cutpoints if the data are binned, this vector gives the cutpoints of
-#' the bins. Ensure that the first element is 0 (or the left truncation
+#' the bins. Supplying a distance column in your data and specifying cutpoints
+#' is the recommended approach for all standard binned analyses.
+#' Ensure that the first element is 0 (or the left truncation
 #' distance) and the last is the distance to the end of the furthest bin.
-#' (Default `NULL`, no binning.) Note that if `data` has columns `distbegin`
-#' and `distend` then these will be used as bins if `cutpoints` is not
-#' specified. If both are specified, `cutpoints` has precedence.
+#' (Default `NULL`, no binning.) If you have provided `distbegin` and `distend`
+#' columns in your data (note this should only be used when your cutpoints 
+#' are not constant across all your data, e.g. planes flying at differing 
+#' altitudes) then do not specify the cutpoints argument as this will cause
+#' the `distbegin` and `distend` columns in your data to be overwritten. 
 #' @param monotonicity should the detection function be constrained for
 #' monotonicity weakly (`"weak"`), strictly (`"strict"`) or not at all
 #' (`"none"` or `FALSE`). See Monotonicity, below. (Default `"strict"`). By
@@ -85,8 +93,9 @@
 #' "Units", below. (Defaults to 1, implying all of the units are "correct"
 #' already.)
 #' @param er_var encounter rate variance estimator to use when abundance
-#' estimates are required. Defaults to "R2" for line transects and "P3" for
-#' point transects. See [`dht2`][dht2] for more information and if more
+#' estimates are required. Defaults to "R2" for line transects and "P2" for
+#' point transects (>= 1.0.9, earlier versions <= 1.0.8 used the "P3" estimator 
+#' by default for points). See [`dht2`][dht2] for more information and if more
 #' complex options are required.
 #' @param method optimization method to use (any method usable by
 #' [`optim`][stats::optim] or [`optimx`][optimx::optimx]). Defaults to
@@ -96,7 +105,7 @@
 #' @param quiet suppress non-essential messages (useful for bootstraps etc).
 #' Default value `FALSE`.
 #' @param initial_values a `list` of named starting values, see
-#' [`mrds-opt`][mrds::mrds-opt]. Only allowed when AIC term selection is not
+#' [`mrds_opt`][mrds::mrds_opt]. Only allowed when AIC term selection is not
 #' used.
 #' @param max_adjustments maximum number of adjustments to try (default 5) only
 #' used when `order=NULL`.
@@ -147,7 +156,7 @@
 #' <http://examples.distancesampling.org/>.
 #'
 #' Hints and tips on fitting (particularly optimisation issues) are on the
-#' [`mrds-opt`][mrds::mrds-opt] manual page.
+#' [`mrds_opt`][mrds::mrds_opt] manual page.
 #'
 #' @section Clusters/groups:
 #'  Note that if the data contains a column named `size`, cluster size will be
@@ -324,7 +333,7 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
              cutpoints=NULL, dht_group=FALSE,
              monotonicity=ifelse(formula==~1, "strict", "none"),
              region_table=NULL, sample_table=NULL, obs_table=NULL,
-             convert_units=1, er_var=ifelse(transect=="line", "R2", "P3"),
+             convert_units=1, er_var=ifelse(transect=="line", "R2", "P2"),
              method="nlminb", quiet=FALSE, debug_level=0,
              initial_values=NULL, max_adjustments=5, er_method=2, dht_se=TRUE,
              optimizer = "both",

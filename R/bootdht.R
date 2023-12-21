@@ -6,7 +6,10 @@
 #'
 #' @param model a model fitted by [`ds`] or a list of models
 #' @param flatfile Data provided in the flatfile format. See [`flatfile`] for
-#' details.
+#' details. Please note, it is a current limitation of bootdht that all 
+#' Sample.Label identifiers must be unique across all strata, i.e.transect
+#' ids must not be re-used from one strata to another. An easy way to achieve
+#' this is to paste together the stratum names and transect ids. 
 #' @param convert_units conversion between units for abundance estimation, see
 #' "Units", below. (Defaults to 1, implying all of the units are "correct"
 #' already.) This takes precedence over any unit conversion stored in `model`.
@@ -98,6 +101,13 @@
 #' when running in parallel, so all computations must be made using only its
 #' `ests` and `fit` arguments (i.e., you can not use R objects from elsewhere
 #' in that function, even if they are available to you from the console).
+#' 
+#' Another consequence of the global environment being unavailable inside 
+#' parallel bootstraps is that any starting values in the model object passed 
+#' in to `bootdht` must be hard coded (otherwise you get back 0 successful 
+#' bootstraps). For a worked example showing this, see the camera trap distance 
+#' sampling online example at 
+#' <https://examples.distancesampling.org/Distance-cameratraps/camera-distill.html>.
 #'
 #' @importFrom utils txtProgressBar setTxtProgressBar getTxtProgressBar
 #' @importFrom stats as.formula AIC
@@ -216,7 +226,7 @@ bootdht <- function(model,
     model
   })
 
-  cat(paste0("Performing ", nboot, " bootstraps\n"))
+  message(paste0("Performing ", nboot, " bootstraps\n"))
 
   if(cores > 1 & progress_bar != "none"){
     progress_bar <- "none"

@@ -31,6 +31,8 @@ dat <- dat[!(dat$Sample.Label %in% dat2$Sample.Label),]
 dat$object <- NA
 dat <- rbind(dat, dat2)
 dat$save.ind <- 1:nrow(dat)
+dat$distance <- rnorm(nrow(dat), 0, 50)
+dat$distance <- ifelse(is.na(dat$object),NA,dat$distance)
 
 
 test_that("resamples work - strata", {
@@ -81,4 +83,107 @@ test_that("resamples work - strata/sample/object", {
   obs <- bootdht_resample_data(dat, c("Region.Label", "Sample.Label", "object"))
 
   expect_equal(obs$save.ind, c(6, 1, 9, 6, 6, 2, 3, 8, 11, 6, 13, 8))
+})
+
+# generate some data to test on
+dat <- data.frame(Sample.Label = 1:10)
+dat$Region.Label <- c(rep(1, 5), rep(2, 5))
+set.seed(115)
+dat2 <- dat
+dat2$Region.Label <- paste("YEAR", as.character(dat2$Region.Label), sep = "")
+dat2 <- rbind(dat2, dat2, dat2)
+dat2$distance <- abs(rnorm(nrow(dat2), 0, 25))
+dat2$Effort <- 1000
+dat2$Area <- 100
+dat2$size <- rpois(nrow(dat2), 20)
+dat2$object <- 1:nrow(dat2)
+
+conversion.factor <- convert_units("meter", "meter", "square kilometer")
+
+fit.ds <- ds(data=dat2,
+             truncation=50,
+             key="hn",
+             adjustment=NULL,
+             convert_units=conversion.factor,
+             formula=~size)
+
+
+
+test_that("Issue #158 is fixed (stratum names > 'Total' bug)", {
+  
+  skip_on_cran()
+  
+  set.seed(225)
+  easybootn <- suppressMessages(bootdht(model=fit.ds,
+                       flatfile=dat2,
+                       summary_fun=bootdht_Nhat_summarize,
+                       convert_units=conversion.factor,
+                       sample_fraction=1,
+                       nboot=3, cores=1,
+                       progress_bar = "none"))
+
+  # Make check table
+  check.tab <- easybootn %>% dplyr::group_by(Label) %>%
+    dplyr::summarize(LCI=quantile(Nhat,probs=0.025,na.rm=TRUE),
+                     UCI=quantile(Nhat,probs=0.975,na.rm=TRUE))
+  
+  # This was TRUE should now be FALSE after fix
+  expect_false(any(is.na(check.tab$LCI)))
+  
+  # Now check cluster fix
+  bootdht_NChat_summarize <- function(ests, fit) {
+    return(data.frame(Label = ests$clusters$N$Label,
+                      Nhat  = ests$cluster$N$Estimate))
+  }
+  
+  set.seed(225)
+  easybootn <- suppressMessages(bootdht(model=fit.ds,
+                       flatfile=dat2,
+                       summary_fun=bootdht_NChat_summarize,
+                       convert_units=conversion.factor,
+                       sample_fraction=1,
+                       nboot=3, cores=1,
+                       progress_bar = "none"))
+  # Make check table
+  check.tab <- easybootn %>% dplyr::group_by(Label) %>%
+    dplyr::summarize(LCI=quantile(Nhat,probs=0.025,na.rm=TRUE),
+                     UCI=quantile(Nhat,probs=0.975,na.rm=TRUE))
+  
+  # This was TRUE should now be FALSE after fix
+  expect_false(any(is.na(check.tab$LCI)))
+})
+
+
+# Test data from Eric
+data(minke)
+# convert exact distances into bins
+vals <- seq(0,2,.2)
+minke$bin <- cut(minke$distance, breaks=seq(0, 2, .2), right=FALSE, labels=FALSE)
+minke$distbegin <- vals[minke$bin]
+minke$distend <- vals[minke$bin+1]
+# remove exact distances
+minke$distance <- NULL
+
+test_that("Issue #147 is fixed (bootdht with distbegin/distend)", {
+  
+  skip_on_cran()
+  mod1 <- ds(minke)
+  set.seed(225)
+  bootout <- bootdht(mod1, flatfile=minke,  nboot=3)
+  expect_true(nrow(bootout) > 0)
+})
+
+
+# generate some data to test on
+dat <- data.frame(object = 1:60, Sample.Label = rep(1:10,6),
+                  Area = 100, Effort = 1000)
+dat$Region.Label <- c(rep("StrataA", 30), rep("StrataB", 30))
+dat$distance <- abs(rnorm(nrow(dat), 0, 25))
+dat$size <- rpois(nrow(dat), 20)
+dat$ref.object <- dat$object
+test_that("Error raised when sampler ID not unique (Issue #157)", {
+  
+  set.seed(123)
+  expect_error(bootdht_resample_data(dat, c("Sample.Label")), 
+               "Cannot bootstrap on samplers within strata as sampler ID values are not unique across strata. Please ensure all Sample.Label values are unique.")
 })
