@@ -4,10 +4,19 @@
 \alias{summarize_ds_models}
 \title{Make a table of summary statistics for detection function models}
 \usage{
-summarize_ds_models(..., sort = "AIC", output = "latex", delta_only = TRUE)
+summarize_ds_models(
+  ...,
+  models = list(),
+  sort = "AIC",
+  output = "latex",
+  delta_only = TRUE
+)
 }
 \arguments{
-\item{...}{models to be summarised}
+\item{...}{models to be summarised (to be deprecated)}
+
+\item{models}{a named list of models to be summarised. If the list is not
+named then default names of 'model 1', 'model 2' etc. are used.}
 
 \item{sort}{column to sort by (default \code{"AIC"})}
 

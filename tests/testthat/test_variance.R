@@ -10,8 +10,10 @@ test_that("variance 2",{
   convert.units <- Systematic_variance_2_units
   cu <- convert.units[, 3]
   cu <- 1/(cu[3]/(cu[1]*cu[2]))
-  # first fit a model
-  sysvar_df <- ds(Systematic_variance_2, adjustment="cos", convert_units=cu)
+  # first fit a model - to avoid warnings use no adjustments (HN model was selected any way based on minimum AIC)
+  sysvar_df <- ds(Systematic_variance_2, 
+                  nadj = 0, 
+                  convert_units=cu)
 
   systematic_var2 <- Systematic_variance_2
   unflat <- unflatten(systematic_var2)
@@ -30,9 +32,9 @@ test_that("variance 2",{
   unflat$obs.table$Sample.Label <- as.numeric(unflat$obs.table$Sample.Label)
   unflat$data$Sample.Label <- as.numeric(unflat$data$Sample.Label)
 
-  # fit the detection function
-  sysvar_df <- ds(unflat$data, adjustment="cos", convert_units=cu)
-
+  # fit the detection function (again avoid adjustment terms to supress warning - no adjustments is selected by AIC any way)
+  sysvar_df <- ds(unflat$data, nadj = 0, convert_units=cu)
+  
   ## no stratification
   #Nhat_nostrat_eff <- dht2(sysvar_df, transects=unflat$sample.table,
   #                             geo_strat=unflat$region.table, observations=unflat$obs.table,
@@ -44,7 +46,7 @@ test_that("variance 2",{
                                  observations=unflat$obs.table,
                                  strat_formula=~1, convert_units=cu,
                                  er_est="O2"),
-                 "Using O2 or O3 encounter rate variance estimator, assuming that sorting on Sample.Label is meaningful")
+                 "Using one of O1, O2, O3, S1 or S2 encounter rate variance estimators, assuming that sorting on Sample.Label is meaningful.")
 
   lr <- Nhat_O2[nrow(Nhat_O2), , drop=FALSE]
   expect_equal(lr$Abundance, 1022, tol=1e-1)

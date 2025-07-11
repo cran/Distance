@@ -56,6 +56,12 @@ test_that("binning works", {
   # first cutpoint not zero when no left truncation
   expect_error(ds(egdata,4,cutpoints=c(2,3,4)),
                "The first cutpoint must be 0 or the left truncation distance!")
+  
+  expect_warning(ds.obj <- ds(egdata,list(left = 2, right = 5),cutpoints=c(2,3,4)),
+               "Truncation width is greater than the largest bin distance, re-setting truncation to be largest cutpoint value: 4")
+  
+  # Check that the width has been modified correctly
+  expect_equal(ds.obj$ddf$meta.data$width, 4)
 
   tst_distances <- data.frame(distance = c(0, 0, 0, 10, 50, 70, 110))
   expect_equal(as.vector(table(create_bins(tst_distances,
@@ -151,6 +157,15 @@ test_that("Uniform does work after all",{
   dd <- suppressMessages(ds(egdata,4,key="unif",order=c(1,2)))
   expect_equal(unname(dd$ddf$par), c(0.7050144, -0.1056291), tol=par.tol)
 
+  # Used to generate an error issue #180
+  data(ducknest)
+  x1 <- ds(ducknest, key="unif", adjustment = NULL)
+  x2 <- ds(ducknest, key="unif", nadj = 1)
+  x3 <- ds(ducknest, key="hn", adjustment = NULL)
+  tmp <- suppressWarnings(summarize_ds_models(x1, x2, x3, 
+                                              delta_only = FALSE))
+  expect_is(tmp, "data.frame")
+  expect_equal(nrow(tmp), 3)
 })
 
 

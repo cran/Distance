@@ -33,17 +33,17 @@
 #' @param ci_width for use with confidence interval calculation (defined as
 #' 1-alpha, so the default 95 will give a 95% confidence interval).
 #' @param innes logical flag for computing encounter rate variance using either
-#' the method of Innes et al (2002) where estimated abundance per transect
+#' the method of \insertCite{innes2002;textual}{mrds} where estimated abundance per transect
 #' divided by effort is used as the encounter rate, vs. (when `innes=FALSE`)
-#' using the number of observations divided by the effort (as in Buckland et
-#' al., 2001)
+#' using the number of observations divided by the effort (as in \insertCite{buckland2001;nobrackets}{mrds})
 #' @param total_area for options `stratification="effort_sum"` and
 #' `stratification="replicate"` the area to use as the total for combined,
 #' weighted final estimates.
 #' @param binomial_var if we wish to estimate abundance for the covered area
 #' only (i.e., study area = surveyed area) then this must be set to be
-#' `TRUE` and use the binomial variance estimator of Borchers et al.
-#' (1998). This is only valid when objects are not clustered. (This situation
+#' `TRUE` and use the negative binomial variance estimator of
+#'  \insertCite{borchers1998;textual}{mrds}. This is only valid when 
+#'  objects are not clustered. (This situation
 #' is rare.)
 #' @return a `data.frame` (of class `dht_result` for pretty printing) with
 #' estimates and attributes containing additional information, see "Outputs"
@@ -129,7 +129,7 @@
 #'  total number of animals, you should use this option.
 #'
 #' A simple example of using `stratification="geographical"` is given below.
-#' Further examples can be found at <http://examples.distancesampling.org/>
+#' Further examples can be found at <https://distancesampling.org/resources/vignettes.html>
 #' (see, e.g., the deer pellet survey).
 #'
 #' @section Variance:
@@ -144,12 +144,12 @@
 #' calculated is given here, though see references for more details.
 #'   * *detection function*: variance from the detection function parameters is
 #'   transformed to variance about the abundance via a sandwich estimator (see
-#'   e.g., Appendix C of Borchers et al (2002)).
+#'   e.g., Appendix C of \insertCite{borchers2002;textual}{Distance}).
 #'   * *encounter rate*: for strata with >1 transect in them, the encounter
-#'   rate estimators given in Fewster et al (2009) can be specified via the
+#'   rate estimators given in \insertCite{fewster2009;textual}{mrds} can be specified via the
 #'   `er_est` argument. If the argument `innes=TRUE` then calculations use the
 #'   estimated number of individuals in the transect (rather than the
-#'   observed), which was give by Innes et al (2002) as a superior estimator.
+#'   observed), which was given by \insertCite{innes2002;textual}{mrds} as a superior estimator.
 #'   When there is only one transect in a stratum, Poisson variance is assumed.
 #'   Information on the Fewster encounter rate variance estimators are given in
 #'   [`varn`][mrds::varn]
@@ -209,27 +209,7 @@
 #'   uncertainty in multipliers
 #'
 #' @references
-#'
-#' Borchers, D.L., S.T. Buckland, P.W. Goedhart, E.D. Clarke, and S.L. Hedley.
-#' 1998. Horvitz-Thompson estimators for double-platform line transect surveys.
-#' *Biometrics* 54: 1221-1237.
-#'
-#' Borchers, D.L., S.T. Buckland, and W. Zucchini. 2002 *Estimating Animal
-#' Abundance: Closed Populations*. Statistics for Biology and Health. Springer
-#' London.
-#'
-#' Buckland, S.T., E.A. Rexstad, T.A. Marques, and C.S. Oedekoven. 2015
-#' *Distance Sampling: Methods and Applications*. Methods in Statistical
-#' Ecology. Springer International Publishing.
-#'
-#' Buckland, S.T., D.R. Anderson, K. Burnham, J.L. Laake, D.L. Borchers, and L.
-#' Thomas. 2001 *Introduction to Distance Sampling: Estimating Abundance of
-#' Biological Populations*. Oxford University Press.
-#'
-#' Innes, S., M. P. Heide-Jorgensen, J.L. Laake, K.L. Laidre, H.J. Cleator, P.
-#' Richard, and R.E.A. Stewart. 2002 Surveys of belugas and narwhals in the
-#' Canadian high arctic in 1996. *NAMMCO Scientific Publications* 4, 169-190.
-#'
+#' \insertAllCited{}
 #' @name dht2
 #' @examples
 #' \dontrun{
@@ -669,7 +649,9 @@ dht2 <- function(ddf, observations=NULL, transects=NULL, geo_strat=NULL,
                                       var(.data$size, na.rm=TRUE)/
                                        sum(!is.na(.data$size)),
                                       0),
-             group_mean     = mean(.data$size, na.rm=TRUE)) %>%
+             group_mean     = if_else(.data$n_observations>0,
+                                      mean(.data$size, na.rm=TRUE),
+                                      1)) %>%
       # report n as n_observations
       mutate(n = .data$n_observations)
   # if we didn't have any areas, then set to 1 and estimate density
@@ -765,11 +747,13 @@ if(mult){
       mutate(ER = .data$n/.data$Effort)
   }
   res <- res %>%
-    mutate(ER_CV = sqrt(.data$ER_var)/.data$ER,
+    mutate(ER_CV = if_else(.data$ER == 0, 0, 
+                           sqrt(.data$ER_var)/.data$ER),
            ER_df = compute_df(.data$k, type=.data$er_est)) %>%
     # calculate stratum abundance estimate
     mutate(Abundance = (.data$Area/.data$Covered_area) * .data$Nc) %>%
-    mutate(df_CV = sqrt(.data$df_var)/.data$Abundance) %>%
+    mutate(df_CV = if_else(.data$Abundance == 0, 0,
+                           sqrt(.data$df_var)/.data$Abundance)) %>%
     mutate(group_CV = if_else(.data$group_var==0, 0,
                               sqrt(.data$group_var)/.data$group_mean))
 
@@ -1113,7 +1097,7 @@ if(mult){
 
   # warn if we only had one transect in one or more strata
   if(any(res$k == 1)){
-    warning("One or more strata have only one transect, cannot calculate empirical encounter rate variance")
+    warning("One or more strata have only one transect, cannot calculate empirical encounter rate variance", call. = FALSE)
   }
 
   # fix area == covered area for compatibility with mrds::dht

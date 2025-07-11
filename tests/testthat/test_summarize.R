@@ -28,14 +28,14 @@ test_that("Error on different truncation distance", {
 ", header=FALSE)
   names(out) <- c("Model", "Key function", "Formula", "C-vM p-value",
                 "$\\hat{P_a}$", "se($\\hat{P_a}$)", "$\\Delta$AIC")
-  expect_equal(summarize_ds_models(t4, t42, t4hr), out, fixed=TRUE, tol=par.tol)
+  expect_equal(suppressWarnings(summarize_ds_models(t4, t42, t4hr)), out, fixed=TRUE, tol=par.tol)
   
   # right truncation different
-  expect_error(summarize_ds_models(t3, t4))
+  expect_error(suppressWarnings(summarize_ds_models(t3, t4)))
   # left
-  expect_error(summarize_ds_models(t4, t14))
+  expect_error(suppressWarnings(summarize_ds_models(t4, t14)))
   # both
-  expect_error(summarize_ds_models(t3, t4, t41))
+  expect_error(suppressWarnings(summarize_ds_models(t3, t4, t41)))
 })
 
 
@@ -57,13 +57,36 @@ test_that("Binning",{
 
   names(out) <- c("Model", "Key function", "Formula", "$\\chi^2$ $p$-value",
                   "$\\hat{P_a}$", "se($\\hat{P_a}$)", "$\\Delta$AIC")
-  expect_equal(summarize_ds_models(cp1, cp11), out, fixed=TRUE, tol=par.tol)
+  expect_equal(suppressWarnings(summarize_ds_models(cp1, cp11)), out, fixed=TRUE, tol=par.tol)
 
   # different bins
-  expect_error(summarize_ds_models(cp1, cp11, cp2))
+  expect_error(suppressWarnings(summarize_ds_models(cp1, cp11, cp2)))
 
   # mixing binned and unbinned
   ncp <- suppressMessages(ds(egdata, key="hn", order=0))
-  expect_error(summarize_ds_models(cp1, ncp))
+  expect_error(suppressWarnings(summarize_ds_models(cp1, ncp)))
 
+})
+
+test_that("Passing in models via a list",{
+  skip_on_cran()
+  data(book.tee.data)
+  tee.data <- subset(book.tee.data$book.tee.dataframe, observer==1)
+  ds.model <- ds(tee.data, 4)
+  ds.model.cos <- ds(tee.data, 4, adjustment="cos", order=2)
+  ds.model.hr <- ds(tee.data, 4, key = "hr", nadj = 0)
+  
+  test1 <- summarize_ds_models(ds.model, ds.model.cos, ds.model.hr)
+  
+  test2 <- summarize_ds_models(models = list(ds.model, ds.model.cos, ds.model.hr))
+  
+  expect_identical(test1[,2:7], test2[,2:7])
+  
+  test3 <- summarize_ds_models(list(ds.model, ds.model.cos, ds.model.hr))
+  
+  expect_identical(test1[,2:7], test3[,2:7])
+  expect_identical(test3[,1], c("\\texttt{model 1}", "\\texttt{model 2}", "\\texttt{model 3}"))
+  
+  test4 <- summarize_ds_models(list(m1 = ds.model, m2 = ds.model.cos, m3 = ds.model.hr))
+  expect_identical(test4[,1], c("\\texttt{m1}", "\\texttt{m2}", "\\texttt{m3}"))
 })

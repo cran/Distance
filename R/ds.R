@@ -13,9 +13,9 @@
 #' file" and not supply `region_table`, `sample_table` and `obs_table`, see
 #' "Data format", below and [`flatfile`][flatfile].
 #' @param truncation either truncation distance (numeric, e.g. 5) or percentage
-#' (as a string, e.g. "15%"). Can be supplied as a `list` with elements `left`
-#' and `right` if left truncation is required (e.g.  `list(left=1,right=20)` or
-#' `list(left="1%",right="15%")` or even `list(left="1",right="15%")`).  By
+#' (as a string, e.g. "15%","15"). Can be supplied as a `list` with elements 
+#' `left` and `right` if left truncation is required (e.g.  `list(left=1,right=20)`
+#' or `list(left="1%",right="15%")` or even `list(left="1",right="15%")`).  By
 #' default for exact distances the maximum observed distance is used as the
 #' right truncation. When the data is binned, the right truncation is the
 #' largest bin end point. Default left truncation is set to zero.
@@ -41,7 +41,7 @@
 #' 1, 2, 3, ... are fitted when `adjustment = "cos"` and order 2, 4, 6, ... 
 #' otherwise. For `key="hn"` or `"hr"` adjustments of order 2, 3, 4, ... are 
 #' fitted when `adjustment = "cos"` and order 4, 6, 8, ... otherwise. See 
-#' Buckland et al. (2001, p. 47) for details.
+#' \insertCite{buckland2001;textual}{mrds} p. 47 for details.
 #' @param order order of adjustment terms to fit. The default value (`NULL`)
 #' results in `ds` choosing the orders to use - see `nadj`. Otherwise a scalar
 #' positive integer value can be used to fit a single adjustment term of the
@@ -58,11 +58,10 @@
 #' is the recommended approach for all standard binned analyses.
 #' Ensure that the first element is 0 (or the left truncation
 #' distance) and the last is the distance to the end of the furthest bin.
-#' (Default `NULL`, no binning.) If you have provided `distbegin` and `distend`
-#' columns in your data (note this should only be used when your cutpoints 
-#' are not constant across all your data, e.g. planes flying at differing 
-#' altitudes) then do not specify the cutpoints argument as this will cause
-#' the `distbegin` and `distend` columns in your data to be overwritten. 
+#' (Default `NULL`, no binning.) Provide `distbegin` and `distend` columns 
+#' in your data only when your cutpoints are not constant across all your 
+#' data, e.g. planes flying at differing altitudes then do not specify the
+#' cutpoints argument. 
 #' @param monotonicity should the detection function be constrained for
 #' monotonicity weakly (`"weak"`), strictly (`"strict"`) or not at all
 #' (`"none"` or `FALSE`). See Monotonicity, below. (Default `"strict"`). By
@@ -92,11 +91,13 @@
 #' @param convert_units conversion between units for abundance estimation, see
 #' "Units", below. (Defaults to 1, implying all of the units are "correct"
 #' already.)
-#' @param er_var encounter rate variance estimator to use when abundance
-#' estimates are required. Defaults to "R2" for line transects and "P2" for
-#' point transects (>= 1.0.9, earlier versions <= 1.0.8 used the "P3" estimator 
-#' by default for points). See [`dht2`][dht2] for more information and if more
-#' complex options are required.
+#' @param er_var specifies which encounter rate estimator to use in the case
+#' that dht_se is TRUE, er_method is either 1 or 2 and there are two or more 
+#' samplers. Defaults to "R2" for line transects and "P2" for point transects 
+#' (>= 1.0.9, earlier versions <= 1.0.8 used the "P3" estimator by default 
+#' for points), both of which assume random placement of transects. For 
+#' systematic designs, alternative estimators may be more appropriate, 
+#' see [`dht2`][dht2] for more information.
 #' @param method optimization method to use (any method usable by
 #' [`optim`][stats::optim] or [`optimx`][optimx::optimx]). Defaults to
 #' `"nlminb"`.
@@ -112,10 +113,13 @@
 #' @param max_adjustments maximum number of adjustments to try (default 5) only
 #' used when `order=NULL`.
 #' @param er_method encounter rate variance calculation: default = 2 gives the
-#' method of Innes et al, using expected counts in the encounter rate. Setting
+#' method of \insertCite{innes2002;textual}{mrds}, using expected counts in the encounter rate. Setting
 #' to 1 gives observed counts (which matches Distance for Windows) and 0 uses
-#' binomial variance (only useful in the rare situation where study area =
-#' surveyed area). See [`dht.se`][mrds::dht.se] for more details.
+#' negative binomial variance (only useful in the rare situation where study area =
+#' surveyed area).
+#' See [`dht.se`][mrds::dht.se] for more details, noting this \code{er_method}
+#' argument corresponds to the \code{varflag} element of the \code{options} 
+#' argument in \code{dht.se}.
 #' @param dht_se should uncertainty be calculated when using `dht`? Safe to
 #' leave as `TRUE`, used in `bootdht`.
 #' @param optimizer By default this is set to 'both'. In this case 
@@ -147,7 +151,7 @@
 #' also be supplied. Note that stratification only applies to abundance
 #' estimates and not at the detection function level. Density and abundance
 #' estimates, and corresponding estimates of variance and confidence intervals,
-#' are calculated using the methods described in Buckland et al. (2001)
+#' are calculated using the methods described in \insertCite{buckland2001;textual}{mrds}
 #' sections 3.6.1 and 3.7.1 (further details can be found in the documentation
 #' for [`dht`][mrds::dht]).
 #'
@@ -155,7 +159,7 @@
 #' [`dht`][mrds::dht] and [`dht2`][dht2] functions.
 #'
 #' Examples of distance sampling analyses are available at
-#' <http://examples.distancesampling.org/>.
+#' <https://distancesampling.org/resources/vignettes.html>.
 #'
 #' Hints and tips on fitting (particularly optimisation issues) are on the
 #' [`mrds_opt`][mrds::mrds_opt] manual page.
@@ -172,7 +176,7 @@
 #' can often be the cause of model convergence failures. It is recommended that
 #' one plots a histogram of the observed distances prior to model fitting so as
 #' to get a feel for an appropriate truncation distance. (Similar arguments go
-#' for left truncation, if appropriate). Buckland et al (2001) provide
+#' for left truncation, if appropriate). \insertCite{buckland2001;textual}{mrds} provide
 #' guidelines on truncation.
 #'
 #' When specified as a percentage, the largest `right` and smallest `left`
@@ -206,7 +210,8 @@
 #' monotonicity (and is by default for detection functions without covariates).
 #'
 #' Monotonicity constraints are supported in a similar way to that described
-#' in Buckland et al (2001). 20 equally spaced points over the range of the
+#' in \insertCite{buckland2001;textual}{mrds}. 20 equally spaced points over 
+#' the range of the
 #' detection function (left to right truncation) are evaluated at each round
 #' of the optimisation and the function is constrained to be either always
 #' less than it's value at zero (`"weak"`) or such that each value is
@@ -265,14 +270,7 @@
 #' @importFrom stats quantile as.formula
 #' @importFrom methods is
 #' @references
-#' Buckland, S.T., Anderson, D.R., Burnham, K.P., Laake, J.L., Borchers, D.L.,
-#' and Thomas, L. (2001). Distance Sampling. Oxford University Press. Oxford,
-#' UK.
-#'
-#' Buckland, S.T., Anderson, D.R., Burnham, K.P., Laake, J.L., Borchers, D.L.,
-#' and Thomas, L. (2004). Advanced Distance Sampling. Oxford University Press.
-#' Oxford, UK.
-#'
+#' \insertAllCited{}
 #' @examples
 #'
 #' # An example from mrds, the golf tee data.
@@ -322,11 +320,11 @@
 #' AIC(ds.model.cos2)
 #' AIC(ds.model.cos23)
 #'}
-ds <- function(data, truncation=ifelse(is.null(cutpoints),
-                                     ifelse(is.null(data$distend),
-                                            max(data$distance),
-                                            max(data$distend)),
-                                     max(cutpoints)),
+ds <- function(data, truncation=ifelse(is.null(data$distend),
+                                       ifelse(is.null(cutpoints),
+                                              max(data$distance),
+                                              max(cutpoints)),
+                                       max(data$distend)),
              transect="line",
              formula=~1, key=c("hn", "hr", "unif"),
              adjustment=c("cos", "herm", "poly"),
@@ -384,6 +382,12 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
   sample_table <- data$sample.table
   obs_table    <- data$obs.table
   data         <- data$data
+  
+  # remove distbegin and distend if they already exist
+  if(any(names(data)=="distend") && any(names(data)=="distbegin") && !is.null(cutpoints)){
+    warning("Data has distend and distbegin columns, cutpoints argument will be ignored.", immediate. = TRUE, call. = FALSE)
+    cutpoints <- NULL
+  }
 
   # setup left and right truncation (width)
   truncation <- get_truncation(truncation, cutpoints, data)
@@ -396,7 +400,6 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
       message("Columns \"distbegin\" and \"distend\" in data: performing a binned analysis...")
       binned <- TRUE
       breaks <- sort(unique(c(data$distend, data$distbegin)))
-      data$distance <- (data$distend + data$distbegin)/2
     }else{
       binned <- FALSE
       breaks <- NULL
@@ -409,13 +412,6 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
       }
     }else if(cutpoints[1]!=0){
       stop("The first cutpoint must be 0 or the left truncation distance!")
-    }
-
-    # remove distbegin and distend if they already exist
-    if(any(names(data)=="distend") & any(names(data)=="distbegin")){
-      message("data already has distend and distbegin columns, removing them and appling binning as specified by cutpoints.")
-      data$distend <- NULL
-      data$distbegin <- NULL
     }
     # send off to create_bins to make the correct columns in data
     data <- create_bins(data, cutpoints)
@@ -785,7 +781,12 @@ ds <- function(data, truncation=ifelse(is.null(cutpoints),
       message("No survey area information supplied, only estimating detection function.\n")
     }
   }
-
+  
+  # Now add distance column after all the fitting if using distbegin/distend
+  if(!is.null(data$distbegin)){
+    model$data$distance <- (model$data$distend + model$data$distbegin)/2
+  }
+  
   # construct return object
   ret.obj <- list(ddf  = model,
                   dht  = dht.res,

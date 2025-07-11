@@ -1,5 +1,4 @@
 Package: Distance
-Maintainer: Laura Marshall <lhm@st-andrews.ac.uk>
 License: GPL (>= 2)
 Title: Distance Sampling Detection Function and Abundance Estimation
 LazyLoad: yes
@@ -16,24 +15,27 @@ Description: A simple way of fitting detection functions to distance sampling
     supported. Abundance and density estimates can also be calculated (via a
     Horvitz-Thompson-like estimator) if survey area information is provided. See
     Miller et al. (2019) <doi:10.18637/jss.v089.i01> for more information on
-    methods and <https://examples.distancesampling.org/> for example analyses.
-Version: 2.0.0
+    methods and <https://distancesampling.org/resources/vignettes.html> for example analyses.
+Version: 2.0.1
 URL: https://github.com/DistanceDevelopment/Distance/
 BugReports: https://github.com/DistanceDevelopment/Distance/issues
 Language: en-GB
-Depends: R (>= 3.5.0), mrds (>= 3.0.0)
-Imports: dplyr, methods, rlang
-Suggests: covr, progress, parallel, doParallel, doRNG, foreach,
-        activity, testthat, optimx, readxl
+Depends: R (>= 4.1.0), mrds (>= 3.0.1)
+Imports: dplyr, methods, rlang, Rdpack
+Suggests: rmarkdown, kableExtra, bookdown, knitr, covr, progress,
+        parallel, doParallel, doRNG, foreach, activity, testthat,
+        optimx, readxl
 Encoding: UTF-8
 RoxygenNote: 7.3.2
+RdMacros: Rdpack
 NeedsCompilation: no
-Packaged: 2024-10-24 12:38:02 UTC; lhm
+Packaged: 2025-07-11 00:06:34 UTC; lhm
 Author: Laura Marshall [cre],
   David Miller [aut],
   T.J. Clark-Wolf [aut],
   Len Thomas [ctb],
   Jeff Laake [ctb],
   Eric Rexstad [rev]
+Maintainer: Laura Marshall <lhm@st-andrews.ac.uk>
 Repository: CRAN
-Date/Publication: 2024-10-24 15:10:05 UTC
+Date/Publication: 2025-07-11 02:30:02 UTC

@@ -9,7 +9,9 @@
 #' the resulting `data.frame` in R, you may wish to rename the columns for
 #' ease of access.
 #'
-#' @param ... models to be summarised
+#' @param ... models to be summarised (to be deprecated)
+#' @param models a named list of models to be summarised. If the list is not
+#' named then default names of 'model 1', 'model 2' etc. are used.  
 #' @param sort column to sort by (default `"AIC"`)
 #' @param output should the output be given in `"latex"` compatible format
 #' or as `"plain"` text?
@@ -26,16 +28,30 @@
 #' model_hr <- ds(tee.data,4, key="hr")
 #' summarize_ds_models(model_hr, model_hn, output="plain")
 #'}
-summarize_ds_models <- function(..., sort="AIC", output="latex",
-                                delta_only=TRUE){
-
-  # get the models
-  models <- list(...)
-
-  # get the model names
-  model_names <- setdiff(as.character(match.call(expand.dots=TRUE)),
-                         as.character(match.call(expand.dots=FALSE)))
-
+summarize_ds_models <- function(..., models=list(), sort="AIC", output="latex", delta_only=TRUE){
+  # Check to see if the user supplied the model list via the ...
+  tmp <- list(...)
+  if(length(tmp) > 0){
+    # Check if its a list of models - incase the user has passed in via ... instead of models argument
+    if(is(tmp[[1]], "list")){
+      models <- tmp[[1]]
+    }
+  }
+  # Check if user is supplying via new models argument or not
+  if(length(models) == 0){
+    # get the models from ...
+    models <- tmp
+    # get the model names
+    model_names <- setdiff(as.character(match.call(expand.dots=TRUE)),
+                           as.character(match.call(expand.dots=FALSE)))
+  }else{
+    # get the model names
+    model_names <- names(models)
+    # if it's an unnamed list, give generic names to them
+    if(is.null(model_names)){
+      model_names <- paste("model ", 1:length(models), sep = "")
+    }
+  }
 
   ## checking
   # can't compare models with different truncations
@@ -71,9 +87,11 @@ summarize_ds_models <- function(..., sort="AIC", output="latex",
   extract_model_data <- function(model){
     summ <- summary(model)
 
-    # handle (uniform) no formula case
+    # handle (uniform) no formula / no average.p.se case
     formula <- model$ddf$ds$aux$ddfobj$scale$formula
     if(is.null(formula)) formula <- NA
+    average.p.se <- summ$ds$average.p.se
+    if(is.null(average.p.se)) average.p.se <- NA
 
     desc <- gsub(" key function","",model.description(model$ddf))
     # only get CvM if not binned
@@ -86,7 +104,7 @@ summarize_ds_models <- function(..., sort="AIC", output="latex",
              formula,
              gof,
              summ$ds$average.p,
-             summ$ds$average.p.se,
+             average.p.se,
              model$ddf$criterion
             )
     return(ret)
